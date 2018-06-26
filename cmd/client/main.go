@@ -39,6 +39,7 @@ func main() {
 		record := enr.Record{}
 		record.Set(enr.IP{10, 0, 10, 24})
 		record.Set(enr.TCP(8087))
+		record.Set(enr.WithEntry("nonce", uint(1010)))
 		must(enr.SignV4(&record, k))
 		must(client.Register(context.TODO(), srv, "topic", record))
 	} else {
@@ -46,12 +47,14 @@ func main() {
 		must(err)
 		for _, r := range records {
 			var (
-				ip   enr.IP
-				port enr.TCP
+				ip    enr.IP
+				port  enr.TCP
+				nonce uint
 			)
 			must(r.Load(&ip))
 			must(r.Load(&port))
-			log.Printf("loaded enr with address %v:%v", ip, port)
+			must(r.Load(enr.WithEntry("nonce", &nonce)))
+			log.Printf("loaded enr with address %v:%v and nonce %v", ip, port, nonce)
 		}
 	}
 }
