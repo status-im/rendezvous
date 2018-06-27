@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/ethereum/go-ethereum/rlp"
 	libp2p "github.com/libp2p/go-libp2p"
@@ -16,9 +17,11 @@ import (
 
 func NewServer(laddr ma.Multiaddr, identity crypto.PrivKey) *Server {
 	srv := Server{
-		laddr:    laddr,
-		identity: identity,
-		storage:  NewStorage(),
+		laddr:        laddr,
+		identity:     identity,
+		storage:      NewStorage(),
+		writeTimeout: 10 * time.Second,
+		readTimeout:  10 * time.Second,
 	}
 	return &srv
 }
@@ -27,7 +30,11 @@ type Server struct {
 	laddr    ma.Multiaddr
 	identity crypto.PrivKey
 
+	writeTimeout time.Duration
+	readTimeout  time.Duration
+
 	storage *Storage
+	cleaner *Cleaner
 
 	h host.Host
 }
@@ -45,16 +52,19 @@ func (srv *Server) Start() error {
 	srv.h.SetStreamHandler("/rend/0.1.0", func(s net.Stream) {
 		defer s.Close()
 		rs := rlp.NewStream(s, 0)
+		s.SetReadDeadline(time.Now().Add(srv.readTimeout))
 		typ, err := rs.Uint()
 		if err != nil {
 			log.Printf("error reading message type: %v\n", err)
 			return
 		}
+		s.SetReadDeadline(time.Now().Add(srv.readTimeout))
 		resp, err := srv.msgParser(MessageType(typ), rs)
 		if err != nil {
 			log.Printf("error parsing message: %v\n", err)
 			return
 		}
+		s.SetWriteDeadline(time.Now().Add(srv.writeTimeout))
 		if err = rlp.Encode(s, resp); err != nil {
 			log.Printf("error encoding response %v : %v\n", resp, err)
 		}

@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	port = pflag.IntP("port", "p", 9090, "")
+	port    = pflag.IntP("port", "p", 9090, "listener port")
+	address = pflag.StringP("address", "a", "0.0.0.0", "listener ip address")
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 	golog.SetAllLoggers(gologging.INFO)
 	priv, _, err := lcrypto.GenerateKeyPairWithReader(lcrypto.RSA, 2048, rand.New(rand.NewSource(int64(*port))))
 	must(err)
-	laddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", *port))
+	laddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", *address, *port))
 	must(err)
 	srv := server.NewServer(laddr, priv)
 	must(srv.Start())

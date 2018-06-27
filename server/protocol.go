@@ -5,7 +5,7 @@ import (
 )
 
 type ResponseStatus uint
-type MessageType uint
+type MessageType uint64
 
 const (
 	REGISTER MessageType = iota
@@ -27,7 +27,7 @@ const (
 type Register struct {
 	Topic  string
 	Record enr.Record
-	TTL    uint
+	TTL    uint64
 }
 
 type RegisterResponse struct {

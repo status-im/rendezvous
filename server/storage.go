@@ -26,6 +26,15 @@ func (s *Storage) Add(topic string, record enr.Record) {
 	s.mu.Unlock()
 }
 
+func (s *Storage) Remove(topic string, record enr.Record) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.db[topic]; !ok {
+		return
+	}
+	delete(s.db[topic], string(record.NodeAddr()))
+}
+
 func (s *Storage) GetLimit(topic string, limit uint) (rst []enr.Record) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

@@ -11,6 +11,7 @@ import (
 	libp2p "github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	host "github.com/libp2p/go-libp2p-host"
+	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/status-im/rendezvous/server"
@@ -40,22 +41,7 @@ type Client struct {
 }
 
 func (c Client) Register(ctx context.Context, srv ma.Multiaddr, topic string, record enr.Record) error {
-	pid, err := srv.ValueForProtocol(ma.P_IPFS)
-	if err != nil {
-		return err
-	}
-	peerid, err := peer.IDB58Decode(pid)
-	if err != nil {
-		return err
-	}
-	// TODO there must be a better interface
-	targetPeerAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", pid))
-	if err != nil {
-		return err
-	}
-	targetAddr := srv.Decapsulate(targetPeerAddr)
-	c.h.Peerstore().AddAddr(peerid, targetAddr, 5*time.Second)
-	s, err := c.h.NewStream(ctx, peerid, "/rend/0.1.0")
+	s, err := c.newStream(ctx, srv)
 	if err != nil {
 		return err
 	}
@@ -79,22 +65,7 @@ func (c Client) Register(ctx context.Context, srv ma.Multiaddr, topic string, re
 }
 
 func (c Client) Discover(ctx context.Context, srv ma.Multiaddr, topic string, limit int) (rst []enr.Record, err error) {
-	pid, err := srv.ValueForProtocol(ma.P_IPFS)
-	if err != nil {
-		return
-	}
-	peerid, err := peer.IDB58Decode(pid)
-	if err != nil {
-		return
-	}
-	// TODO there must be a better interface
-	targetPeerAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", pid))
-	if err != nil {
-		return
-	}
-	targetAddr := srv.Decapsulate(targetPeerAddr)
-	c.h.Peerstore().AddAddr(peerid, targetAddr, 5*time.Second)
-	s, err := c.h.NewStream(ctx, peerid, "/rend/0.1.0")
+	s, err := c.newStream(ctx, srv)
 	if err != nil {
 		return
 	}
@@ -115,4 +86,23 @@ func (c Client) Discover(ctx context.Context, srv ma.Multiaddr, topic string, li
 	}
 	log.Printf("received response %v\n", val)
 	return val.Records, nil
+}
+
+func (c Client) newStream(ctx context.Context, srv ma.Multiaddr) (s inet.Stream, err error) {
+	pid, err := srv.ValueForProtocol(ma.P_IPFS)
+	if err != nil {
+		return
+	}
+	peerid, err := peer.IDB58Decode(pid)
+	if err != nil {
+		return
+	}
+	// TODO there must be a better interface
+	targetPeerAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", pid))
+	if err != nil {
+		return
+	}
+	targetAddr := srv.Decapsulate(targetPeerAddr)
+	c.h.Peerstore().AddAddr(peerid, targetAddr, 5*time.Second)
+	return c.h.NewStream(ctx, peerid, "/rend/0.1.0")
 }
