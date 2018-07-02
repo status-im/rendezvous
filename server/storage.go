@@ -1,50 +1,59 @@
 package server
 
 import (
-	"sync"
+	"crypto/rand"
 
 	"github.com/ethereum/go-ethereum/p2p/enr"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
-func NewStorage() *Storage {
-	s := new(Storage)
-	s.db = map[string]map[string]enr.Record{}
-	return s
+func NewStorage(db *leveldb.DB) Storage {
+	return Storage{db: db}
 }
 
 type Storage struct {
-	mu sync.RWMutex
-	db map[string]map[string]enr.Record
+	db *leveldb.DB
 }
 
-func (s *Storage) Add(topic string, record enr.Record) {
-	s.mu.Lock()
-	if _, ok := s.db[topic]; !ok {
-		s.db[topic] = map[string]enr.Record{}
+func (s Storage) Add(topic string, record enr.Record) (string, error) {
+	key := make([]byte, 0, len([]byte(topic))+len(record.NodeAddr()))
+	key = append(key, []byte(topic)...)
+	key = append(key, record.NodeAddr()...)
+	data, err := rlp.EncodeToBytes(record)
+	if err != nil {
+		return "", err
 	}
-	s.db[topic][string(record.NodeAddr())] = record
-	s.mu.Unlock()
+	return string(key), s.db.Put(key, data, nil)
 }
 
-func (s *Storage) Remove(topic string, record enr.Record) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if _, ok := s.db[topic]; !ok {
-		return
-	}
-	delete(s.db[topic], string(record.NodeAddr()))
+func (s *Storage) RemoveByKey(key string) error {
+	return s.db.Delete([]byte(key), nil)
 }
 
-func (s *Storage) GetLimit(topic string, limit uint) (rst []enr.Record) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	var i uint
-	for _, record := range s.db[topic] {
-		// copy?
-		rst = append(rst, record)
-		i++
-		if i == limit {
+func (s *Storage) GetRandom(topic string, limit uint) (rst []enr.Record, err error) {
+	iter := s.db.NewIterator(nil, nil)
+	defer iter.Release()
+	tries := uint(0)
+	for tries < limit*3 {
+		tries++
+		id := make([]byte, 32)
+		key := []byte{}
+		key = append(key, []byte(topic)...)
+		if _, err = rand.Read(id[:]); err != nil {
 			return
+		}
+		key = append(key, id...)
+		iter.Seek(key)
+		if iter.Next() {
+			var record enr.Record
+			if err = rlp.DecodeBytes(iter.Value(), &record); err != nil {
+				return
+			}
+			rst = append(rst, record)
+			if uint(len(rst)) == limit {
+				return
+			}
 		}
 	}
 	return

@@ -14,7 +14,7 @@ import (
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/status-im/rendezvous/server"
+	"github.com/status-im/rendezvous/protocol"
 )
 
 func New(laddr ma.Multiaddr, identity crypto.PrivKey) (c Client, err error) {
@@ -46,19 +46,19 @@ func (c Client) Register(ctx context.Context, srv ma.Multiaddr, topic string, re
 		return err
 	}
 	defer s.Close()
-	if err = rlp.Encode(s, server.REGISTER); err != nil {
+	if err = rlp.Encode(s, protocol.REGISTER); err != nil {
 		return err
 	}
-	if err = rlp.Encode(s, server.Register{Topic: topic, Record: record}); err != nil {
+	if err = rlp.Encode(s, protocol.Register{Topic: topic, Record: record}); err != nil {
 		return err
 	}
 	rs := rlp.NewStream(s, 0)
-	var val server.RegisterResponse
+	var val protocol.RegisterResponse
 	if err = rs.Decode(&val); err != nil {
 		return err
 	}
 	log.Printf("received response %v\n", val)
-	if val.Status != server.OK {
+	if val.Status != protocol.OK {
 		return fmt.Errorf("register failed. status code %v", val.Status)
 	}
 	return nil
@@ -70,18 +70,18 @@ func (c Client) Discover(ctx context.Context, srv ma.Multiaddr, topic string, li
 		return
 	}
 	defer s.Close()
-	if err = rlp.Encode(s, server.DISCOVER); err != nil {
+	if err = rlp.Encode(s, protocol.DISCOVER); err != nil {
 		return
 	}
-	if err = rlp.Encode(s, server.Discover{Topic: topic, Limit: uint(limit)}); err != nil {
+	if err = rlp.Encode(s, protocol.Discover{Topic: topic, Limit: uint(limit)}); err != nil {
 		return
 	}
 	rs := rlp.NewStream(s, 0)
-	var val server.DiscoverResponse
+	var val protocol.DiscoverResponse
 	if err = rs.Decode(&val); err != nil {
 		return
 	}
-	if val.Status != server.OK {
+	if val.Status != protocol.OK {
 		return nil, fmt.Errorf("register failed. status code %v", val.Status)
 	}
 	log.Printf("received response %v\n", val)

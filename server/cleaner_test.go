@@ -1,24 +1,23 @@
 package server
 
 import (
-	"container/heap"
-	"fmt"
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/p2p/enr"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCleaner(t *testing.T) {
 	c := NewCleaner()
+	added := map[time.Duration]string{}
 	for _, ttl := range []time.Duration{3 * time.Minute, time.Minute, 2 * time.Minute} {
-		k, _ := crypto.GenerateKey()
-		r := enr.Record{}
-		enr.SignV4(&r, k)
-		c.Add(int64(ttl), r)
+		added[ttl] = ttl.String()
+		c.Add(time.Time{}.Add(ttl), ttl.String())
 	}
-	fmt.Println(c.heap)
-	fmt.Println(heap.Pop(&c))
-	fmt.Println(c.heap)
+	assert.Equal(t, added[time.Minute], c.PopOneSince(time.Time{}.Add(90*time.Second)))
+	assert.Len(t, c.heap, 2)
+	assert.Empty(t, c.PopOneSince(time.Time{}.Add(119*time.Second)))
+	assert.Equal(t, added[2*time.Minute], c.PopOneSince(time.Time{}.Add(121*time.Second)))
+	assert.Equal(t, added[3*time.Minute], c.PopOneSince(time.Time{}.Add(200*time.Second)))
+	assert.Empty(t, c.PopOneSince(time.Time{}.Add(500*time.Second)))
 }

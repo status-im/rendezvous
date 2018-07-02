@@ -1,4 +1,4 @@
-package server
+package protocol
 
 import (
 	"github.com/ethereum/go-ethereum/p2p/enr"
@@ -8,9 +8,10 @@ type ResponseStatus uint
 type MessageType uint64
 
 const (
+	VERSION = "/rend/0.1.0"
+
 	REGISTER MessageType = iota
 	REGISTER_RESPONSE
-	UNREGISTER
 	DISCOVER
 	DISCOVER_RESPONSE
 
@@ -44,9 +45,4 @@ type DiscoverResponse struct {
 	Status  ResponseStatus
 	Message string
 	Records []enr.Record
-}
-
-type Unregister struct {
-	Topic  string
-	Record enr.Record
 }
