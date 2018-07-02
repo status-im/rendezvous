@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/rand"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/p2p/enr"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -35,6 +36,7 @@ func (s *Storage) GetRandom(topic string, limit uint) (rst []enr.Record, err err
 	iter := s.db.NewIterator(nil, nil)
 	defer iter.Release()
 	tries := uint(0)
+	found := map[string]struct{}{}
 	for tries < limit*3 {
 		tries++
 		id := make([]byte, 32)
@@ -46,6 +48,11 @@ func (s *Storage) GetRandom(topic string, limit uint) (rst []enr.Record, err err
 		key = append(key, id...)
 		iter.Seek(key)
 		if iter.Next() {
+			valkey := common.Bytes2Hex(iter.Key())
+			if _, exist := found[valkey]; exist {
+				continue
+			}
+			found[valkey] = struct{}{}
 			var record enr.Record
 			if err = rlp.DecodeBytes(iter.Value(), &record); err != nil {
 				return

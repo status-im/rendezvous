@@ -19,7 +19,7 @@ const (
 	E_INVALID_NAMESPACE ResponseStatus = 100
 	E_INVALID_ENR       ResponseStatus = 101
 	E_INVALID_TTL       ResponseStatus = 102
-	E_INVALID_COOKIE    ResponseStatus = 103
+	E_INVALID_LIMIT     ResponseStatus = 103
 	E_INVALID_CONTENT   ResponseStatus = 104
 	E_NOT_AUTHORIZED    ResponseStatus = 200
 	E_INTERNAL_ERROR    ResponseStatus = 300

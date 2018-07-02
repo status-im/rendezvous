@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	longestTTL    = 20 * time.Second
-	cleanerPeriod = 2 * time.Second
+	longestTTL         = 20 * time.Second
+	cleanerPeriod      = 2 * time.Second
+	maxLimit      uint = 5
 )
 
 func NewServer(laddr ma.Multiaddr, identity crypto.PrivKey, s Storage) *Server {
@@ -141,6 +142,9 @@ func (srv *Server) msgParser(typ protocol.MessageType, d Decoder) (resp interfac
 		var msg protocol.Discover
 		if err = d.Decode(&msg); err != nil {
 			return protocol.RegisterResponse{Status: protocol.E_INVALID_CONTENT}, nil
+		}
+		if msg.Limit > maxLimit {
+			return protocol.RegisterResponse{Status: protocol.E_INVALID_LIMIT}, nil
 		}
 		records, err := srv.storage.GetRandom(msg.Topic, msg.Limit)
 		if err != nil {
