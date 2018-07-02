@@ -1,12 +1,16 @@
 package server
 
 import (
-	"crypto/rand"
+	"math/rand"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/p2p/enr"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/util"
+)
+
+const (
+	maxRandomPool = 50
 )
 
 func NewStorage(db *leveldb.DB) Storage {
@@ -33,35 +37,24 @@ func (s *Storage) RemoveByKey(key string) error {
 }
 
 func (s *Storage) GetRandom(topic string, limit uint) (rst []enr.Record, err error) {
-	iter := s.db.NewIterator(nil, nil)
+	iter := s.db.NewIterator(&util.Range{Start: []byte(topic)}, nil)
 	defer iter.Release()
-	tries := uint(0)
-	found := map[string]struct{}{}
-	for tries < limit*3 {
-		tries++
-		id := make([]byte, 32)
-		key := []byte{}
-		key = append(key, []byte(topic)...)
-		if _, err = rand.Read(id[:]); err != nil {
+	pool := make([]enr.Record, 0, maxRandomPool)
+	for iter.Next() || len(pool) == maxRandomPool {
+		var record enr.Record
+		if err = rlp.DecodeBytes(iter.Value(), &record); err != nil {
 			return
 		}
-		key = append(key, id...)
-		iter.Seek(key)
-		if iter.Next() {
-			valkey := common.Bytes2Hex(iter.Key())
-			if _, exist := found[valkey]; exist {
-				continue
-			}
-			found[valkey] = struct{}{}
-			var record enr.Record
-			if err = rlp.DecodeBytes(iter.Value(), &record); err != nil {
-				return
-			}
-			rst = append(rst, record)
-			if uint(len(rst)) == limit {
-				return
-			}
+		pool = append(pool, record)
+	}
+	chosen := make([]byte, len(pool))
+	for uint(len(rst)) < limit {
+		n := rand.Intn(len(pool))
+		if chosen[n] == 1 {
+			continue
 		}
+		chosen[n] = 1
+		rst = append(rst, pool[n])
 	}
 	return
 }

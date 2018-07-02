@@ -49,7 +49,7 @@ func (c Client) Register(ctx context.Context, srv ma.Multiaddr, topic string, re
 	if err = rlp.Encode(s, protocol.REGISTER); err != nil {
 		return err
 	}
-	if err = rlp.Encode(s, protocol.Register{Topic: topic, Record: record}); err != nil {
+	if err = rlp.Encode(s, protocol.Register{Topic: topic, Record: record, TTL: uint64(5 * time.Second)}); err != nil {
 		return err
 	}
 	rs := rlp.NewStream(s, 0)

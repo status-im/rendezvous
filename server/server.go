@@ -45,10 +45,15 @@ type Server struct {
 	storage Storage
 	cleaner *Cleaner
 
-	h host.Host
+	h    host.Host
+	addr ma.Multiaddr
 
 	wg   sync.WaitGroup
 	quit chan struct{}
+}
+
+func (srv *Server) Addr() ma.Multiaddr {
+	return srv.addr
 }
 
 func (srv *Server) Start() error {
@@ -85,6 +90,7 @@ func (srv *Server) Start() error {
 	if err != nil {
 		return err
 	}
+	srv.addr = srv.laddr.Encapsulate(addr)
 	log.Println(srv.laddr.Encapsulate(addr))
 	srv.quit = make(chan struct{})
 	srv.wg.Add(1)

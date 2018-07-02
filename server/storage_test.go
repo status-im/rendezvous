@@ -24,3 +24,16 @@ func TestGetRandom(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, records, 2)
 }
+
+func TestGetRandomSingle(t *testing.T) {
+	memdb, _ := leveldb.Open(storage.NewMemStorage(), nil)
+	s := NewStorage(memdb)
+	key, _ := crypto.GenerateKey()
+	var r enr.Record
+	require.NoError(t, enr.SignV4(&r, key))
+	_, err := s.Add("some", r)
+	require.NoError(t, err)
+	records, err := s.GetRandom("some", 1)
+	require.NoError(t, err)
+	require.Len(t, records, 1)
+}
