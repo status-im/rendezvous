@@ -11,7 +11,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	lcrypto "github.com/libp2p/go-libp2p-crypto"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/status-im/rendezvous/client"
+	"github.com/status-im/rendezvous"
 	"github.com/status-im/rendezvous/server"
 	"github.com/stretchr/testify/require"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -37,7 +37,7 @@ func TestClientRegisterDiscover(t *testing.T) {
 	require.NoError(t, err)
 	laddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/8888"))
 	require.NoError(t, err)
-	client, err := client.New(laddr, priv)
+	client, err := rendezvous.New(laddr, priv)
 	require.NoError(t, err)
 
 	k, _ := crypto.GenerateKey()

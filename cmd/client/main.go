@@ -12,7 +12,7 @@ import (
 	lcrypto "github.com/libp2p/go-libp2p-crypto"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/spf13/pflag"
-	"github.com/status-im/rendezvous/client"
+	"github.com/status-im/rendezvous"
 	gologging "github.com/whyrusleeping/go-logging"
 )
 
@@ -32,7 +32,7 @@ func main() {
 	must(err)
 	srv, err := ma.NewMultiaddr(*server)
 	must(err)
-	client, err := client.New(laddr, priv)
+	client, err := rendezvous.New(laddr, priv)
 	must(err)
 	if *reg {
 		k, _ := crypto.GenerateKey()

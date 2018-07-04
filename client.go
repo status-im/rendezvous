@@ -1,7 +1,8 @@
-package client
+package rendezvous
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"log"
 	"time"
@@ -16,6 +17,14 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/status-im/rendezvous/protocol"
 )
+
+func NewTemporary(laddr ma.Multiaddr) (c Client, err error) {
+	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
+	if err != nil {
+		return Client{}, err
+	}
+	return New(laddr, priv)
+}
 
 func New(laddr ma.Multiaddr, identity crypto.PrivKey) (c Client, err error) {
 	opts := []libp2p.Option{
