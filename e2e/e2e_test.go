@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -50,4 +51,7 @@ func TestClientRegisterDiscover(t *testing.T) {
 	records, err := client.Discover(context.TODO(), srv.Addr(), "any", 1)
 	require.NoError(t, err)
 	require.Len(t, records, 1)
+	var id enr.Secp256k1
+	require.NoError(t, records[0].Load(&id))
+	require.Equal(t, crypto.PubkeyToAddress(k.PublicKey), crypto.PubkeyToAddress(ecdsa.PublicKey(id)))
 }
