@@ -38,7 +38,7 @@ func TestClientRegisterDiscover(t *testing.T) {
 	require.NoError(t, err)
 	laddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/8888"))
 	require.NoError(t, err)
-	client, err := rendezvous.New(laddr, priv)
+	client, err := rendezvous.NewTemporary()
 	require.NoError(t, err)
 
 	k, _ := crypto.GenerateKey()

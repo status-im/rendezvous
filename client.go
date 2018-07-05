@@ -18,17 +18,16 @@ import (
 	"github.com/status-im/rendezvous/protocol"
 )
 
-func NewTemporary(laddr ma.Multiaddr) (c Client, err error) {
+func NewTemporary() (c Client, err error) {
 	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
 	if err != nil {
 		return Client{}, err
 	}
-	return New(laddr, priv)
+	return New(priv)
 }
 
-func New(laddr ma.Multiaddr, identity crypto.PrivKey) (c Client, err error) {
+func New(identity crypto.PrivKey) (c Client, err error) {
 	opts := []libp2p.Option{
-		libp2p.ListenAddrStrings(laddr.String()),
 		libp2p.Identity(identity),
 	}
 	h, err := libp2p.New(context.Background(), opts...)
@@ -36,7 +35,6 @@ func New(laddr ma.Multiaddr, identity crypto.PrivKey) (c Client, err error) {
 		return c, err
 	}
 	return Client{
-		laddr:    laddr,
 		identity: identity,
 		h:        h,
 	}, nil
