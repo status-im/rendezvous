@@ -47,6 +47,9 @@ func (s *Storage) GetRandom(topic string, limit uint) (rst []enr.Record, err err
 		}
 		pool = append(pool, record)
 	}
+	if limit >= uint(len(pool)) {
+		return pool, nil
+	}
 	chosen := make([]byte, len(pool))
 	for uint(len(rst)) < limit {
 		n := rand.Intn(len(pool))

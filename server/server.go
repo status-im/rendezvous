@@ -20,7 +20,7 @@ import (
 const (
 	longestTTL         = 20 * time.Second
 	cleanerPeriod      = 2 * time.Second
-	maxLimit      uint = 5
+	maxLimit      uint = 10
 )
 
 func NewServer(laddr ma.Multiaddr, identity crypto.PrivKey, s Storage) *Server {
@@ -156,7 +156,7 @@ func (srv *Server) msgParser(typ protocol.MessageType, d Decoder) (resp interfac
 		if err != nil {
 			return protocol.RegisterResponse{Status: protocol.E_INTERNAL_ERROR}, err
 		}
-		return protocol.DiscoverResponse{Records: records}, nil
+		return protocol.DiscoverResponse{Status: protocol.OK, Records: records}, nil
 	default:
 		// don't send the response
 		return nil, errors.New("unknown request type")
