@@ -42,7 +42,7 @@ func (s *Storage) RemoveByKey(key string) error {
 
 // GetRandom reads random records for specified topic up to specified limit.
 func (s *Storage) GetRandom(topic string, limit uint) (rst []enr.Record, err error) {
-	iter := s.db.NewIterator(&util.Range{Start: []byte(topic)}, nil)
+	iter := s.db.NewIterator(util.BytesPrefix([]byte(topic)), nil)
 	defer iter.Release()
 	pool := make([]enr.Record, 0, maxRandomPool)
 	for iter.Next() || len(pool) == maxRandomPool {
