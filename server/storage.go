@@ -13,14 +13,17 @@ const (
 	maxRandomPool = 50
 )
 
+// NewStorage creates instance of the storage.
 func NewStorage(db *leveldb.DB) Storage {
 	return Storage{db: db}
 }
 
+// Storage manages records.
 type Storage struct {
 	db *leveldb.DB
 }
 
+// Add stores record using specified topic.
 func (s Storage) Add(topic string, record enr.Record) (string, error) {
 	key := make([]byte, 0, len([]byte(topic))+len(record.NodeAddr()))
 	key = append(key, []byte(topic)...)
@@ -32,10 +35,12 @@ func (s Storage) Add(topic string, record enr.Record) (string, error) {
 	return string(key), s.db.Put(key, data, nil)
 }
 
+// RemoveBykey removes record from storage.
 func (s *Storage) RemoveByKey(key string) error {
 	return s.db.Delete([]byte(key), nil)
 }
 
+// GetRandom reads random records for specified topic up to specified limit.
 func (s *Storage) GetRandom(topic string, limit uint) (rst []enr.Record, err error) {
 	iter := s.db.NewIterator(&util.Range{Start: []byte(topic)}, nil)
 	defer iter.Release()

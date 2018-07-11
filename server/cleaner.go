@@ -7,6 +7,9 @@ import (
 )
 
 // definitely rename
+// Rewrite cleaner to operate on a leveldb directly
+// if it is impossible to query on topic+timestamp(big endian) for purging
+// store an additional key
 func NewCleaner() *Cleaner {
 	return &Cleaner{
 		heap:      []string{},

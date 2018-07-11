@@ -18,23 +18,27 @@ import (
 )
 
 const (
-	longestTTL         = 20 * time.Second
-	cleanerPeriod      = 2 * time.Second
-	maxLimit      uint = 10
+	longestTTL          = 20 * time.Second
+	cleanerPeriod       = 2 * time.Second
+	maxLimit       uint = 10
+	maxTopicLength      = 50
 )
 
+// NewServer creates instance of the server.
 func NewServer(laddr ma.Multiaddr, identity crypto.PrivKey, s Storage) *Server {
 	srv := Server{
-		laddr:        laddr,
-		identity:     identity,
-		storage:      s,
-		cleaner:      NewCleaner(),
-		writeTimeout: 10 * time.Second,
-		readTimeout:  10 * time.Second,
+		laddr:         laddr,
+		identity:      identity,
+		storage:       s,
+		cleaner:       NewCleaner(),
+		writeTimeout:  10 * time.Second,
+		readTimeout:   10 * time.Second,
+		cleanerPeriod: cleanerPeriod,
 	}
 	return &srv
 }
 
+// Server provides rendezbous service over libp2p stream.
 type Server struct {
 	laddr    ma.Multiaddr
 	identity crypto.PrivKey
@@ -42,8 +46,9 @@ type Server struct {
 	writeTimeout time.Duration
 	readTimeout  time.Duration
 
-	storage Storage
-	cleaner *Cleaner
+	storage       Storage
+	cleaner       *Cleaner
+	cleanerPeriod time.Duration
 
 	h    host.Host
 	addr ma.Multiaddr
@@ -52,11 +57,37 @@ type Server struct {
 	quit chan struct{}
 }
 
+// Addr returns full server multiaddr (identity included).
 func (srv *Server) Addr() ma.Multiaddr {
 	return srv.addr
 }
 
+// Start creates listener.
 func (srv *Server) Start() error {
+	if err := srv.startListener(); err != nil {
+		return err
+	}
+	return srv.startCleaner()
+}
+
+func (srv *Server) startCleaner() error {
+	srv.quit = make(chan struct{})
+	srv.wg.Add(1)
+	go func() {
+		for {
+			select {
+			case <-time.After(srv.cleanerPeriod):
+				srv.purgeOutdated()
+			case <-srv.quit:
+				srv.wg.Done()
+				return
+			}
+		}
+	}()
+	return nil
+}
+
+func (srv *Server) startListener() error {
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(srv.laddr.String()),
 		libp2p.Identity(srv.identity),
@@ -92,26 +123,24 @@ func (srv *Server) Start() error {
 	}
 	srv.addr = srv.laddr.Encapsulate(addr)
 	log.Println(srv.laddr.Encapsulate(addr))
-	srv.quit = make(chan struct{})
-	srv.wg.Add(1)
-	go func() {
-		for {
-			select {
-			case <-time.After(cleanerPeriod):
-				srv.purgeOutdated()
-			case <-srv.quit:
-				srv.wg.Done()
-				return
-			}
-		}
-	}()
 	return nil
 }
 
+// Stop closes listener and waits till all helper goroutines are stopped.
 func (srv *Server) Stop() {
+	if srv.quit == nil {
+		return
+	}
+	select {
+	case <-srv.quit:
+		return
+	default:
+	}
 	close(srv.quit)
 	srv.wg.Wait()
-	srv.h.Close()
+	if srv.h != nil {
+		srv.h.Close()
+	}
 }
 
 func (srv *Server) purgeOutdated() {
@@ -124,6 +153,7 @@ func (srv *Server) purgeOutdated() {
 	}
 }
 
+// Decoder is a decoder!
 type Decoder interface {
 	Decode(val interface{}) error
 }
@@ -135,30 +165,41 @@ func (srv *Server) msgParser(typ protocol.MessageType, d Decoder) (resp interfac
 		if err = d.Decode(&msg); err != nil {
 			return protocol.RegisterResponse{Status: protocol.E_INVALID_CONTENT}, nil
 		}
-		if time.Duration(msg.TTL) > longestTTL {
-			return protocol.RegisterResponse{Status: protocol.E_INVALID_TTL}, nil
-		}
-		key, err := srv.storage.Add(msg.Topic, msg.Record)
-		if err != nil {
-			return protocol.RegisterResponse{Status: protocol.E_INTERNAL_ERROR}, err
-		}
-		srv.cleaner.Add(time.Now().Add(time.Duration(msg.TTL)), key)
-		return protocol.RegisterResponse{Status: protocol.OK}, nil
+		return srv.register(msg)
 	case protocol.DISCOVER:
 		var msg protocol.Discover
 		if err = d.Decode(&msg); err != nil {
-			return protocol.RegisterResponse{Status: protocol.E_INVALID_CONTENT}, nil
+			return protocol.DiscoverResponse{Status: protocol.E_INVALID_CONTENT}, nil
 		}
+		limit := msg.Limit
 		if msg.Limit > maxLimit {
-			return protocol.RegisterResponse{Status: protocol.E_INVALID_LIMIT}, nil
+			limit = maxLimit
 		}
-		records, err := srv.storage.GetRandom(msg.Topic, msg.Limit)
+		records, err := srv.storage.GetRandom(msg.Topic, limit)
 		if err != nil {
-			return protocol.RegisterResponse{Status: protocol.E_INTERNAL_ERROR}, err
+			return protocol.DiscoverResponse{Status: protocol.E_INTERNAL_ERROR}, err
 		}
 		return protocol.DiscoverResponse{Status: protocol.OK, Records: records}, nil
 	default:
 		// don't send the response
 		return nil, errors.New("unknown request type")
 	}
+}
+
+func (srv *Server) register(msg protocol.Register) (protocol.RegisterResponse, error) {
+	if len(msg.Topic) == 0 || len(msg.Topic) > maxTopicLength {
+		return protocol.RegisterResponse{Status: protocol.E_INVALID_NAMESPACE}, nil
+	}
+	if time.Duration(msg.TTL) > longestTTL {
+		return protocol.RegisterResponse{Status: protocol.E_INVALID_TTL}, nil
+	}
+	if !msg.Record.Signed() {
+		return protocol.RegisterResponse{Status: protocol.E_INVALID_ENR}, nil
+	}
+	key, err := srv.storage.Add(msg.Topic, msg.Record)
+	if err != nil {
+		return protocol.RegisterResponse{Status: protocol.E_INTERNAL_ERROR}, err
+	}
+	srv.cleaner.Add(time.Now().Add(time.Duration(msg.TTL)), key)
+	return protocol.RegisterResponse{Status: protocol.OK}, nil
 }
