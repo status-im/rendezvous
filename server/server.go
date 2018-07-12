@@ -107,10 +107,14 @@ func (srv *Server) startListener() error {
 			return
 		}
 		s.SetReadDeadline(time.Now().Add(srv.readTimeout))
-		resp, err := srv.msgParser(protocol.MessageType(typ), rs)
+		resptype, resp, err := srv.msgParser(protocol.MessageType(typ), rs)
 		if err != nil {
 			log.Printf("error parsing message: %v\n", err)
 			return
+		}
+		s.SetWriteDeadline(time.Now().Add(srv.writeTimeout))
+		if err = rlp.Encode(s, resptype); err != nil {
+			log.Printf("error writing response type %v: %v", resptype, err)
 		}
 		s.SetWriteDeadline(time.Now().Add(srv.writeTimeout))
 		if err = rlp.Encode(s, resp); err != nil {
@@ -158,18 +162,21 @@ type Decoder interface {
 	Decode(val interface{}) error
 }
 
-func (srv *Server) msgParser(typ protocol.MessageType, d Decoder) (resp interface{}, err error) {
+func (srv *Server) msgParser(typ protocol.MessageType, d Decoder) (resptype protocol.MessageType, resp interface{}, err error) {
 	switch typ {
 	case protocol.REGISTER:
 		var msg protocol.Register
+		resptype = protocol.REGISTER_RESPONSE
 		if err = d.Decode(&msg); err != nil {
-			return protocol.RegisterResponse{Status: protocol.E_INVALID_CONTENT}, nil
+			return resptype, protocol.RegisterResponse{Status: protocol.E_INVALID_CONTENT}, nil
 		}
-		return srv.register(msg)
+		resp, err = srv.register(msg)
+		return resptype, resp, err
 	case protocol.DISCOVER:
 		var msg protocol.Discover
+		resptype = protocol.DISCOVER_RESPONSE
 		if err = d.Decode(&msg); err != nil {
-			return protocol.DiscoverResponse{Status: protocol.E_INVALID_CONTENT}, nil
+			return resptype, protocol.DiscoverResponse{Status: protocol.E_INVALID_CONTENT}, nil
 		}
 		limit := msg.Limit
 		if msg.Limit > maxLimit {
@@ -177,12 +184,12 @@ func (srv *Server) msgParser(typ protocol.MessageType, d Decoder) (resp interfac
 		}
 		records, err := srv.storage.GetRandom(msg.Topic, limit)
 		if err != nil {
-			return protocol.DiscoverResponse{Status: protocol.E_INTERNAL_ERROR}, err
+			return resptype, protocol.DiscoverResponse{Status: protocol.E_INTERNAL_ERROR}, err
 		}
-		return protocol.DiscoverResponse{Status: protocol.OK, Records: records}, nil
+		return resptype, protocol.DiscoverResponse{Status: protocol.OK, Records: records}, nil
 	default:
 		// don't send the response
-		return nil, errors.New("unknown request type")
+		return 0, nil, errors.New("unknown request type")
 	}
 }
 

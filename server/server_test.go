@@ -130,9 +130,10 @@ func TestRegisterRPC(t *testing.T) {
 			memdb, _ := leveldb.Open(storage.NewMemStorage(), nil)
 			s := NewStorage(memdb)
 			srv := NewServer(nil, nil, s)
-			resp, err := srv.msgParser(protocol.REGISTER, tc)
+			resptype, resp, err := srv.msgParser(protocol.REGISTER, tc)
 			require.NoError(t, err)
-			require.Equal(t, tc.Status, resp.(protocol.RegisterResponse).Status)
+			assert.Equal(t, protocol.REGISTER_RESPONSE, resptype)
+			assert.Equal(t, tc.Status, resp.(protocol.RegisterResponse).Status)
 		})
 	}
 }
@@ -199,8 +200,9 @@ func TestDiscoverRPC(t *testing.T) {
 				require.Equal(t, protocol.OK, resp.Status)
 			}
 
-			resp, err := srv.msgParser(protocol.DISCOVER, tc)
+			resptype, resp, err := srv.msgParser(protocol.DISCOVER, tc)
 			require.NoError(t, err)
+			assert.Equal(t, protocol.DISCOVER_RESPONSE, resptype)
 			assert.Equal(t, tc.Status, resp.(protocol.DiscoverResponse).Status)
 			assert.Len(t, resp.(protocol.DiscoverResponse).Records, tc.RecordsLen)
 		})

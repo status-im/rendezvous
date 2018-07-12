@@ -60,6 +60,13 @@ func (c Client) Register(ctx context.Context, srv ma.Multiaddr, topic string, re
 		return err
 	}
 	rs := rlp.NewStream(s, 0)
+	typ, err := rs.Uint()
+	if err != nil {
+		return err
+	}
+	if protocol.MessageType(typ) != protocol.REGISTER_RESPONSE {
+		return fmt.Errorf("expected %v as response, but got %v", protocol.REGISTER_RESPONSE, typ)
+	}
 	var val protocol.RegisterResponse
 	if err = rs.Decode(&val); err != nil {
 		return err
@@ -84,6 +91,13 @@ func (c Client) Discover(ctx context.Context, srv ma.Multiaddr, topic string, li
 		return
 	}
 	rs := rlp.NewStream(s, 0)
+	typ, err := rs.Uint()
+	if err != nil {
+		return nil, err
+	}
+	if protocol.MessageType(typ) != protocol.DISCOVER_RESPONSE {
+		return nil, fmt.Errorf("expected %v as response, but got %v", protocol.REGISTER_RESPONSE, typ)
+	}
 	var val protocol.DiscoverResponse
 	if err = rs.Decode(&val); err != nil {
 		return
