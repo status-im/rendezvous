@@ -121,7 +121,7 @@ func (srv *Server) startListener() error {
 			log.Printf("error encoding response %v : %v\n", resp, err)
 		}
 	})
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", h.ID().Pretty()))
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ethv4/%s", h.ID().Pretty()))
 	if err != nil {
 		return err
 	}

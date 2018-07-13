@@ -25,7 +25,7 @@ func TestClientRegisterDiscover(t *testing.T) {
 	golog.SetupLogging()
 	golog.SetAllLoggers(gologging.INFO)
 
-	priv, _, err := lcrypto.GenerateKeyPairWithReader(lcrypto.RSA, 2048, rand.New(rand.NewSource(1)))
+	priv, _, err := lcrypto.GenerateKeyPairWithReader(lcrypto.Secp256k1, 2048, rand.New(rand.NewSource(1)))
 	require.NoError(t, err)
 	laddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/7777"))
 	require.NoError(t, err)
@@ -34,7 +34,7 @@ func TestClientRegisterDiscover(t *testing.T) {
 	srv := server.NewServer(laddr, priv, server.NewStorage(db))
 	require.NoError(t, srv.Start())
 
-	priv, _, err = lcrypto.GenerateKeyPairWithReader(lcrypto.RSA, 2048, rand.New(rand.NewSource(2)))
+	priv, _, err = lcrypto.GenerateKeyPairWithReader(lcrypto.Secp256k1, 2048, rand.New(rand.NewSource(2)))
 	require.NoError(t, err)
 	laddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/8888"))
 	require.NoError(t, err)

@@ -24,7 +24,7 @@ func main() {
 	pflag.Parse()
 	golog.SetupLogging()
 	golog.SetAllLoggers(gologging.INFO)
-	priv, _, err := lcrypto.GenerateKeyPairWithReader(lcrypto.RSA, 2048, rand.New(rand.NewSource(int64(*port))))
+	priv, _, err := lcrypto.GenerateKeyPairWithReader(lcrypto.Secp256k1, 2048, rand.New(rand.NewSource(int64(*port))))
 	must(err)
 	laddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", *address, *port))
 	must(err)

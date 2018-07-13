@@ -61,3 +61,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/syndtr/goleveldb"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/status-im/go-multiaddr-ethv4"

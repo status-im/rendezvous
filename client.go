@@ -15,6 +15,7 @@ import (
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
+	ethv4 "github.com/status-im/go-multiaddr-ethv4"
 	"github.com/status-im/rendezvous/protocol"
 )
 
@@ -110,7 +111,7 @@ func (c Client) Discover(ctx context.Context, srv ma.Multiaddr, topic string, li
 }
 
 func (c Client) newStream(ctx context.Context, srv ma.Multiaddr) (s inet.Stream, err error) {
-	pid, err := srv.ValueForProtocol(ma.P_IPFS)
+	pid, err := srv.ValueForProtocol(ethv4.P_ETHv4)
 	if err != nil {
 		return
 	}
@@ -119,7 +120,7 @@ func (c Client) newStream(ctx context.Context, srv ma.Multiaddr) (s inet.Stream,
 		return
 	}
 	// TODO there must be a better interface
-	targetPeerAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", pid))
+	targetPeerAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ethv4/%s", pid))
 	if err != nil {
 		return
 	}
