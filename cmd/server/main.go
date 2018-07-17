@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/btcsuite/btcd/btcec"
 	golog "github.com/ipfs/go-log"
 	lcrypto "github.com/libp2p/go-libp2p-crypto"
 	ma "github.com/multiformats/go-multiaddr"
@@ -35,9 +36,7 @@ func main() {
 	priv, err := getKey()
 	must(err)
 	if *generate {
-		bytes, err := priv.Bytes()
-		must(err)
-		fmt.Println(hex.EncodeToString(bytes))
+		fmt.Println(hex.EncodeToString((*btcec.PrivateKey)(priv.(*lcrypto.Secp256k1PrivateKey)).Serialize()))
 		os.Exit(0)
 	}
 	laddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", *address, *port))
@@ -71,9 +70,9 @@ func getKey() (priv lcrypto.PrivKey, err error) {
 		if err != nil {
 			return priv, err
 		}
-		return lcrypto.UnmarshalPrivateKey(bytes)
+		return lcrypto.UnmarshalSecp256k1PrivateKey(bytes)
 	}
-	priv, _, err = lcrypto.GenerateKeyPairWithReader(lcrypto.Secp256k1, 2048, rand.Reader)
+	priv, _, err = lcrypto.GenerateSecp256k1Key(rand.Reader)
 	return priv, err
 }
 
