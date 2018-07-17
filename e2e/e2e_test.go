@@ -3,7 +3,6 @@ package e2e
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"math/rand"
 	"testing"
 
@@ -27,7 +26,7 @@ func TestClientRegisterDiscover(t *testing.T) {
 
 	priv, _, err := lcrypto.GenerateKeyPairWithReader(lcrypto.Secp256k1, 2048, rand.New(rand.NewSource(1)))
 	require.NoError(t, err)
-	laddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/7777"))
+	laddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/7777")
 	require.NoError(t, err)
 	db, err := leveldb.Open(storage.NewMemStorage(), nil)
 	require.NoError(t, err)
@@ -35,8 +34,6 @@ func TestClientRegisterDiscover(t *testing.T) {
 	require.NoError(t, srv.Start())
 
 	priv, _, err = lcrypto.GenerateKeyPairWithReader(lcrypto.Secp256k1, 2048, rand.New(rand.NewSource(2)))
-	require.NoError(t, err)
-	laddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/8888"))
 	require.NoError(t, err)
 	client, err := rendezvous.NewTemporary()
 	require.NoError(t, err)
