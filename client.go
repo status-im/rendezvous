@@ -85,13 +85,14 @@ func (c Client) Discover(ctx context.Context, srv ma.Multiaddr, topic string, li
 		return
 	}
 	defer s.Close()
-	if err = rlp.Encode(s, protocol.DISCOVER); err != nil {
+	si := InstrumenetedStream{s}
+	if err = rlp.Encode(si, protocol.DISCOVER); err != nil {
 		return
 	}
-	if err = rlp.Encode(s, protocol.Discover{Topic: topic, Limit: uint(limit)}); err != nil {
+	if err = rlp.Encode(si, protocol.Discover{Topic: topic, Limit: uint(limit)}); err != nil {
 		return
 	}
-	rs := rlp.NewStream(s, 0)
+	rs := rlp.NewStream(si, 0)
 	typ, err := rs.Uint()
 	if err != nil {
 		return nil, err

@@ -48,6 +48,7 @@
     "crypto/secp256k1",
     "crypto/sha3",
     "log",
+    "metrics",
     "p2p/discover",
     "p2p/enr",
     "p2p/nat",
@@ -573,11 +574,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:06ebf577f5ad593c3a3c023437c16e028aa5580883333b82ca37f62ac44898c4"
+  digest = "1:8d27d462cd66c6c609d1d1693f9ff5ea1e6effd080eafe17a5e3f11643501b28"
   name = "github.com/status-im/go-multiaddr-ethv4"
   packages = ["."]
   pruneopts = "T"
-  revision = "becd46a4dd1f60b32f6f27be9eced5dc051fd5fc"
+  revision = "17cb1ad76379d65e802eacc786d8f67eebd7cd6d"
 
 [[projects]]
   digest = "1:c7f05297d9ad389d81e6d764388d97c4b6a64665eff9fd2550fbdd8545430b80"
@@ -750,9 +751,10 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/btcsuite/btcd/btcec",
     "github.com/ethereum/go-ethereum/common",
     "github.com/ethereum/go-ethereum/crypto",
-    "github.com/ethereum/go-ethereum/p2p/discover",
+    "github.com/ethereum/go-ethereum/metrics",
     "github.com/ethereum/go-ethereum/p2p/enr",
     "github.com/ethereum/go-ethereum/rlp",
     "github.com/ipfs/go-log",
