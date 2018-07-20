@@ -1,7 +1,9 @@
 package server
 
 import (
-	"math/rand"
+	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 
 	"github.com/ethereum/go-ethereum/p2p/enr"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -44,25 +46,31 @@ func (s *Storage) RemoveByKey(key string) error {
 func (s *Storage) GetRandom(topic string, limit uint) (rst []enr.Record, err error) {
 	iter := s.db.NewIterator(util.BytesPrefix([]byte(topic)), nil)
 	defer iter.Release()
-	pool := make([]enr.Record, 0, maxRandomPool)
-	for iter.Next() || len(pool) == maxRandomPool {
-		var record enr.Record
-		if err = rlp.DecodeBytes(iter.Value(), &record); err != nil {
-			return
+	tlth := len([]byte(topic))
+	key := make([]byte, tlth+32) // doesn't have to be precisely original length of the key
+	hexes := map[string]struct{}{}
+	// it might be too much cause we do crypto/rand.Read. requires profiling
+	for i := uint(0); i < limit*limit && len(rst) < int(limit); i++ {
+		if _, err := rand.Read(key); err != nil {
+			return nil, err
 		}
-		pool = append(pool, record)
-	}
-	if limit >= uint(len(pool)) {
-		return pool, nil
-	}
-	chosen := make([]byte, len(pool))
-	for uint(len(rst)) < limit {
-		n := rand.Intn(len(pool))
-		if chosen[n] == 1 {
-			continue
+		copy(key, []byte(topic))
+		iter.Seek(key)
+		for _, f := range []func() bool{iter.Prev, iter.Next} {
+			if f() && bytes.Equal([]byte(topic), iter.Key()[:tlth]) {
+				var record enr.Record
+				if err = rlp.DecodeBytes(iter.Value(), &record); err != nil {
+					return nil, err
+				}
+				h := hex.EncodeToString(iter.Key())
+				if _, exist := hexes[h]; exist {
+					continue
+				}
+				hexes[h] = struct{}{}
+				rst = append(rst, record)
+				break
+			}
 		}
-		chosen[n] = 1
-		rst = append(rst, pool[n])
 	}
-	return
+	return rst, nil
 }
