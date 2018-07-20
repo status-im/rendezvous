@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"io"
 	"log"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	libp2p "github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	host "github.com/libp2p/go-libp2p-host"
-	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
 	ethv4 "github.com/status-im/go-multiaddr-ethv4"
@@ -85,14 +85,13 @@ func (c Client) Discover(ctx context.Context, srv ma.Multiaddr, topic string, li
 		return
 	}
 	defer s.Close()
-	si := InstrumenetedStream{s}
-	if err = rlp.Encode(si, protocol.DISCOVER); err != nil {
+	if err = rlp.Encode(s, protocol.DISCOVER); err != nil {
 		return
 	}
-	if err = rlp.Encode(si, protocol.Discover{Topic: topic, Limit: uint(limit)}); err != nil {
+	if err = rlp.Encode(s, protocol.Discover{Topic: topic, Limit: uint(limit)}); err != nil {
 		return
 	}
-	rs := rlp.NewStream(si, 0)
+	rs := rlp.NewStream(s, 0)
 	typ, err := rs.Uint()
 	if err != nil {
 		return nil, err
@@ -111,7 +110,7 @@ func (c Client) Discover(ctx context.Context, srv ma.Multiaddr, topic string, li
 	return val.Records, nil
 }
 
-func (c Client) newStream(ctx context.Context, srv ma.Multiaddr) (s inet.Stream, err error) {
+func (c Client) newStream(ctx context.Context, srv ma.Multiaddr) (rw io.ReadWriteCloser, err error) {
 	pid, err := srv.ValueForProtocol(ethv4.P_ETHv4)
 	if err != nil {
 		return
@@ -127,5 +126,9 @@ func (c Client) newStream(ctx context.Context, srv ma.Multiaddr) (s inet.Stream,
 	}
 	targetAddr := srv.Decapsulate(targetPeerAddr)
 	c.h.Peerstore().AddAddr(peerid, targetAddr, 5*time.Second)
-	return c.h.NewStream(ctx, peerid, "/rend/0.1.0")
+	s, err := c.h.NewStream(ctx, peerid, "/rend/0.1.0")
+	if err != nil {
+		return nil, err
+	}
+	return InstrumenetedStream{s}, nil
 }

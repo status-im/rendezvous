@@ -26,3 +26,7 @@ func (si InstrumenetedStream) Read(p []byte) (int, error) {
 	ingressTrafficMeter.Mark(int64(n))
 	return n, err
 }
+
+func (si InstrumenetedStream) Close() error {
+	return si.s.Close()
+}
