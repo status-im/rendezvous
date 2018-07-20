@@ -28,7 +28,6 @@ func TestGetRandom(t *testing.T) {
 		{"morethanpool", 5, 10, 5},
 	} {
 		t.Run(tc.desc, func(t *testing.T) {
-			t.Parallel()
 			memdb, _ := leveldb.Open(storage.NewMemStorage(), nil)
 			s := NewStorage(memdb)
 			for i := 0; i < tc.total; i++ {
