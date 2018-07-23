@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/hex"
 
 	"github.com/ethereum/go-ethereum/p2p/enr"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -48,7 +47,7 @@ func (s *Storage) GetRandom(topic string, limit uint) (rst []enr.Record, err err
 	defer iter.Release()
 	tlth := len([]byte(topic))
 	key := make([]byte, tlth+32) // doesn't have to be precisely original length of the key
-	hexes := map[string]struct{}{}
+	uids := map[string]struct{}{}
 	// it might be too much cause we do crypto/rand.Read. requires profiling
 	for i := uint(0); i < limit*limit && len(rst) < int(limit); i++ {
 		if _, err := rand.Read(key); err != nil {
@@ -62,11 +61,11 @@ func (s *Storage) GetRandom(topic string, limit uint) (rst []enr.Record, err err
 				if err = rlp.DecodeBytes(iter.Value(), &record); err != nil {
 					return nil, err
 				}
-				h := hex.EncodeToString(iter.Key())
-				if _, exist := hexes[h]; exist {
+				k := iter.Key()
+				if _, exist := uids[string(k)]; exist {
 					continue
 				}
-				hexes[h] = struct{}{}
+				uids[string(k)] = struct{}{}
 				rst = append(rst, record)
 				break
 			}
