@@ -114,3 +114,36 @@ func TestGetRandomMultiTopics(t *testing.T) {
 		assert.NotContains(t, firstSet, addr.Hex())
 	}
 }
+
+func BenchmarkRandomReadsFull(b *testing.B) {
+	benchmarkRandomReads(b, 1000)
+}
+
+func BenchmarkRandomReadsEmpty(b *testing.B) {
+	benchmarkRandomReads(b, 0)
+}
+
+func BenchmarkRandomReadsAlmostEmpty(b *testing.B) {
+	benchmarkRandomReads(b, 3)
+}
+
+func BenchmarkRandomReadsMedium(b *testing.B) {
+	benchmarkRandomReads(b, 10)
+}
+
+func benchmarkRandomReads(b *testing.B, records int) {
+	topic := "a"
+	memdb, _ := leveldb.Open(storage.NewMemStorage(), nil)
+	s := NewStorage(memdb)
+	for i := 0; i < records; i++ {
+		key, _ := crypto.GenerateKey()
+		var r enr.Record
+		require.NoError(b, enr.SignV4(&r, key))
+		_, err := s.Add(topic, r)
+		require.NoError(b, err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.GetRandom(topic, 5)
+	}
+}
