@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/ecdsa"
+	"strconv"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -115,20 +116,12 @@ func TestGetRandomMultiTopics(t *testing.T) {
 	}
 }
 
-func BenchmarkRandomReadsFull(b *testing.B) {
-	benchmarkRandomReads(b, 1000)
-}
-
-func BenchmarkRandomReadsEmpty(b *testing.B) {
-	benchmarkRandomReads(b, 0)
-}
-
-func BenchmarkRandomReadsAlmostEmpty(b *testing.B) {
-	benchmarkRandomReads(b, 3)
-}
-
-func BenchmarkRandomReadsMedium(b *testing.B) {
-	benchmarkRandomReads(b, 10)
+func BenchmarkRandomReads(b *testing.B) {
+	for _, n := range []int{0, 3, 10, 20, 50, 100, 1000} {
+		b.Run(strconv.Itoa(n), func(b *testing.B) {
+			benchmarkRandomReads(b, n)
+		})
+	}
 }
 
 func benchmarkRandomReads(b *testing.B, records int) {
