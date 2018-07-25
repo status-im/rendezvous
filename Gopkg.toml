@@ -65,3 +65,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/status-im/go-multiaddr-ethv4"
+
+[[constraint]]
+  name = "github.com/gyuho/goraph"
+  version = "2.0.0"
