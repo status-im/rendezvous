@@ -5,9 +5,9 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"log"
 	"time"
 
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/enr"
 	"github.com/ethereum/go-ethereum/rlp"
 	libp2p "github.com/libp2p/go-libp2p"
@@ -18,6 +18,8 @@ import (
 	ethv4 "github.com/status-im/go-multiaddr-ethv4"
 	"github.com/status-im/rendezvous/protocol"
 )
+
+var logger = log.New("package", "rendezvous/client")
 
 func NewTemporary() (c Client, err error) {
 	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
@@ -72,7 +74,7 @@ func (c Client) Register(ctx context.Context, srv ma.Multiaddr, topic string, re
 	if err = rs.Decode(&val); err != nil {
 		return err
 	}
-	log.Printf("received response %v\n", val)
+	logger.Debug("received response to register", "status", val.Status, "message", val.Message)
 	if val.Status != protocol.OK {
 		return fmt.Errorf("register failed. status code %v", val.Status)
 	}
@@ -104,9 +106,9 @@ func (c Client) Discover(ctx context.Context, srv ma.Multiaddr, topic string, li
 		return
 	}
 	if val.Status != protocol.OK {
-		return nil, fmt.Errorf("register failed. status code %v", val.Status)
+		return nil, fmt.Errorf("discover request failed. status code %v", val.Status)
 	}
-	log.Printf("received response %v\n", val)
+	logger.Debug("received response to discover request", "status", val.Status, "records lth", len(val.Records))
 	return val.Records, nil
 }
 

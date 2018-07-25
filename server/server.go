@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	libp2p "github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p-crypto"
@@ -16,6 +16,8 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/status-im/rendezvous/protocol"
 )
+
+var logger = log.New("package", "rendezvous/server")
 
 const (
 	longestTTL          = 20 * time.Second
@@ -110,22 +112,23 @@ func (srv *Server) startListener() error {
 		s.SetReadDeadline(time.Now().Add(srv.readTimeout))
 		typ, err := rs.Uint()
 		if err != nil {
-			log.Printf("error reading message type: %v\n", err)
+			logger.Error("error reading message type", "error", err)
 			return
 		}
 		s.SetReadDeadline(time.Now().Add(srv.readTimeout))
 		resptype, resp, err := srv.msgParser(protocol.MessageType(typ), rs)
 		if err != nil {
-			log.Printf("error parsing message: %v\n", err)
+			logger.Error("error parsing message", "error", err)
 			return
 		}
 		s.SetWriteDeadline(time.Now().Add(srv.writeTimeout))
 		if err = rlp.Encode(s, resptype); err != nil {
-			log.Printf("error writing response type %v: %v", resptype, err)
+			logger.Error("error writing response", "type", resptype, "error", err)
+			return
 		}
 		s.SetWriteDeadline(time.Now().Add(srv.writeTimeout))
 		if err = rlp.Encode(s, resp); err != nil {
-			log.Printf("error encoding response %v : %v\n", resp, err)
+			logger.Error("error encoding response", "resp", resp, "error", err)
 		}
 	})
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ethv4/%s", h.ID().Pretty()))
@@ -133,7 +136,7 @@ func (srv *Server) startListener() error {
 		return err
 	}
 	srv.addr = srv.laddr.Encapsulate(addr)
-	log.Println(srv.laddr.Encapsulate(addr))
+	logger.Info("server started", "address", srv.laddr.Encapsulate(addr))
 	return nil
 }
 
@@ -160,7 +163,7 @@ func (srv *Server) purgeOutdated() {
 		return
 	}
 	if err := srv.storage.RemoveByKey(key); err != nil {
-		log.Printf("error removing key '%s' from storage: %v", key, err)
+		logger.Error("error removing key from storage", "key", key, "error", err)
 	}
 }
 
