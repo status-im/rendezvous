@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"crypto/rand"
+	"time"
 
 	"github.com/ethereum/go-ethereum/p2p/enr"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -11,8 +12,31 @@ import (
 )
 
 const (
-	maxRandomPool = 50
+	RecordsPrefix byte = 1 + iota
 )
+
+type StorageRecord struct {
+	ENR  enr.Record
+	Time time.Time
+}
+
+type RecordsKey []byte
+
+func NewRecordsKey(topic string, record enr.Record) RecordsKey {
+	key := make(RecordsKey, 1+len([]byte(topic))+len(record.NodeAddr()))
+	key[0] = RecordsPrefix
+	copy(key[1:], []byte(topic))
+	copy(key[1+len([]byte(topic)):], record.NodeAddr())
+	return key
+}
+
+func (k RecordsKey) SamePrefix(prefix []byte) bool {
+	return bytes.Equal(k[:len(prefix)], prefix)
+}
+
+func (k RecordsKey) String() string {
+	return string(k)
+}
 
 // NewStorage creates instance of the storage.
 func NewStorage(db *leveldb.DB) Storage {
@@ -25,15 +49,17 @@ type Storage struct {
 }
 
 // Add stores record using specified topic.
-func (s Storage) Add(topic string, record enr.Record) (string, error) {
-	key := make([]byte, 0, len([]byte(topic))+len(record.NodeAddr()))
-	key = append(key, []byte(topic)...)
-	key = append(key, record.NodeAddr()...)
-	data, err := rlp.EncodeToBytes(record)
+func (s Storage) Add(topic string, record enr.Record, t time.Time) (string, error) {
+	key := NewRecordsKey(topic, record)
+	stored := StorageRecord{
+		ENR:  record,
+		Time: t,
+	}
+	data, err := rlp.EncodeToBytes(stored)
 	if err != nil {
 		return "", err
 	}
-	return string(key), s.db.Put(key, data, nil)
+	return key.String(), s.db.Put(key, data, nil)
 }
 
 // RemoveBykey removes record from storage.
@@ -41,24 +67,41 @@ func (s *Storage) RemoveByKey(key string) error {
 	return s.db.Delete([]byte(key), nil)
 }
 
+func (s *Storage) IterateAllKeys(iterator func(key RecordsKey, ttl time.Time) error) error {
+	iter := s.db.NewIterator(util.BytesPrefix([]byte{RecordsPrefix}), nil)
+	defer iter.Release()
+	for iter.Next() {
+		var stored StorageRecord
+		if err := rlp.DecodeBytes(iter.Value(), &stored); err != nil {
+			return err
+		}
+		if err := iterator(RecordsKey(iter.Key()), stored.Time); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // GetRandom reads random records for specified topic up to specified limit.
 func (s *Storage) GetRandom(topic string, limit uint) (rst []enr.Record, err error) {
-	iter := s.db.NewIterator(util.BytesPrefix([]byte(topic)), nil)
+	prefixlen := 1 + len([]byte(topic))
+	key := make(RecordsKey, prefixlen+32)
+	key[0] = RecordsPrefix
+	copy(key[1:], []byte(topic))
+
+	iter := s.db.NewIterator(util.BytesPrefix(key[:prefixlen]), nil)
 	defer iter.Release()
-	tlth := len([]byte(topic))
-	key := make([]byte, tlth+32) // doesn't have to be precisely original length of the key
 	uids := map[string]struct{}{}
 	// it might be too much cause we do crypto/rand.Read. requires profiling
 	for i := uint(0); i < limit*limit && len(rst) < int(limit); i++ {
-		if _, err := rand.Read(key); err != nil {
+		if _, err := rand.Read(key[prefixlen:]); err != nil {
 			return nil, err
 		}
-		copy(key, []byte(topic))
 		iter.Seek(key)
 		for _, f := range []func() bool{iter.Prev, iter.Next} {
-			if f() && bytes.Equal([]byte(topic), iter.Key()[:tlth]) {
-				var record enr.Record
-				if err = rlp.DecodeBytes(iter.Value(), &record); err != nil {
+			if f() && key.SamePrefix(iter.Key()[:prefixlen]) {
+				var stored StorageRecord
+				if err = rlp.DecodeBytes(iter.Value(), &stored); err != nil {
 					return nil, err
 				}
 				k := iter.Key()
@@ -66,7 +109,7 @@ func (s *Storage) GetRandom(topic string, limit uint) (rst []enr.Record, err err
 					continue
 				}
 				uids[string(k)] = struct{}{}
-				rst = append(rst, record)
+				rst = append(rst, stored.ENR)
 				break
 			}
 		}

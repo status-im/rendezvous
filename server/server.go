@@ -67,7 +67,14 @@ func (srv *Server) Start() error {
 	if err := srv.startListener(); err != nil {
 		return err
 	}
-	return srv.startCleaner()
+	if err := srv.startCleaner(); err != nil {
+		return err
+	}
+	// once server is restarted all cleaner info is lost. so we need to rebuild it
+	return srv.storage.IterateAllKeys(func(key RecordsKey, ttl time.Time) error {
+		srv.cleaner.Add(ttl, key.String())
+		return nil
+	})
 }
 
 func (srv *Server) startCleaner() error {
@@ -203,10 +210,11 @@ func (srv *Server) register(msg protocol.Register) (protocol.RegisterResponse, e
 	if !msg.Record.Signed() {
 		return protocol.RegisterResponse{Status: protocol.E_INVALID_ENR}, nil
 	}
-	key, err := srv.storage.Add(msg.Topic, msg.Record)
+	ttl := time.Now().Add(time.Duration(msg.TTL))
+	key, err := srv.storage.Add(msg.Topic, msg.Record, ttl)
 	if err != nil {
 		return protocol.RegisterResponse{Status: protocol.E_INTERNAL_ERROR}, err
 	}
-	srv.cleaner.Add(time.Now().Add(time.Duration(msg.TTL)), key)
+	srv.cleaner.Add(ttl, key)
 	return protocol.RegisterResponse{Status: protocol.OK}, nil
 }

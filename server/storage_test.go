@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -35,7 +36,7 @@ func TestGetRandom(t *testing.T) {
 				key, _ := crypto.GenerateKey()
 				var r enr.Record
 				require.NoError(t, enr.SignV4(&r, key))
-				_, err := s.Add("some", r)
+				_, err := s.Add("some", r, time.Time{})
 				require.NoError(t, err)
 			}
 			records, err := s.GetRandom("some", uint(tc.get))
@@ -54,7 +55,7 @@ func TestGetRandomMultipleTimes(t *testing.T) {
 		key, _ := crypto.GenerateKey()
 		var r enr.Record
 		require.NoError(t, enr.SignV4(&r, key))
-		_, err := s.Add("some", r)
+		_, err := s.Add("some", r, time.Time{})
 		require.NoError(t, err)
 	}
 	hits := map[common.Address]int{}
@@ -89,7 +90,7 @@ func TestGetRandomMultiTopics(t *testing.T) {
 			key, _ := crypto.GenerateKey()
 			var r enr.Record
 			require.NoError(t, enr.SignV4(&r, key))
-			_, err := s.Add(fixture.topic, r)
+			_, err := s.Add(fixture.topic, r, time.Time{})
 			require.NoError(t, err)
 			fixture.set[crypto.PubkeyToAddress(key.PublicKey).Hex()] = struct{}{}
 		}
@@ -116,6 +117,29 @@ func TestGetRandomMultiTopics(t *testing.T) {
 	}
 }
 
+func TestIterateKeys(t *testing.T) {
+	topic := "a"
+	count := 5
+	keys := map[string]struct{}{}
+	memdb, _ := leveldb.Open(storage.NewMemStorage(), nil)
+	s := NewStorage(memdb)
+	for i := 0; i < count; i++ {
+		pkey, _ := crypto.GenerateKey()
+		var r enr.Record
+		require.NoError(t, enr.SignV4(&r, pkey))
+		key, err := s.Add(topic, r, time.Time{})
+		require.NoError(t, err)
+		keys[key] = struct{}{}
+	}
+	rstcount := 0
+	require.NoError(t, s.IterateAllKeys(func(key RecordsKey, ttl time.Time) error {
+		rstcount++
+		assert.Contains(t, keys, key.String())
+		return nil
+	}))
+	require.Equal(t, count, rstcount)
+}
+
 func BenchmarkRandomReads(b *testing.B) {
 	for _, n := range []int{0, 3, 10, 20, 50, 100, 1000} {
 		b.Run(strconv.Itoa(n), func(b *testing.B) {
@@ -132,7 +156,7 @@ func benchmarkRandomReads(b *testing.B, records int) {
 		key, _ := crypto.GenerateKey()
 		var r enr.Record
 		require.NoError(b, enr.SignV4(&r, key))
-		_, err := s.Add(topic, r)
+		_, err := s.Add(topic, r, time.Time{})
 		require.NoError(b, err)
 	}
 	b.ResetTimer()
