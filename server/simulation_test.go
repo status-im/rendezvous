@@ -26,7 +26,7 @@ func (a addr) ID() goraph.ID {
 }
 
 func TestGraphConnected(t *testing.T) {
-	for iter := 0; iter < 100; iter++ {
+	for iter := 0; iter < 10; iter++ {
 		t.Run(fmt.Sprintf("Iteration/%d", iter), func(t *testing.T) {
 			t.Parallel()
 			topic := "a"
