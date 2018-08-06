@@ -1,5 +1,9 @@
-How to run?
-===========
+rendezvous
+==========
+
+Implementation of [a rendezvous peers discovery protocol](https://github.com/libp2p/specs/pull/56).
+
+## How to run?
 
 Fetch dependencies
 
