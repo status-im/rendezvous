@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/ethereum/go-ethereum/log"
 	golog "github.com/ipfs/go-log"
 	lcrypto "github.com/libp2p/go-libp2p-crypto"
 	ma "github.com/multiformats/go-multiaddr"
@@ -21,18 +23,38 @@ import (
 )
 
 var (
-	port     = pflag.IntP("port", "p", 9090, "listener port")
-	address  = pflag.StringP("address", "a", "0.0.0.0", "listener ip address")
-	data     = pflag.StringP("data", "d", "/tmp/rendevouz", "Path where ENR infos will be stored.")
-	generate = pflag.BoolP("generate", "g", false, "dump private key and exit.")
-	keypath  = pflag.StringP("keypath", "k", "", "path to load private key")
-	keyhex   = pflag.StringP("keyhex", "h", "", "private key hex")
+	port      = pflag.IntP("port", "p", 9090, "listener port")
+	address   = pflag.StringP("address", "a", "0.0.0.0", "listener ip address")
+	data      = pflag.StringP("data", "d", "/tmp/rendevouz", "path where ENR infos will be stored.")
+	generate  = pflag.BoolP("generate", "g", false, "dump private key and exit.")
+	keypath   = pflag.StringP("keypath", "k", "", "path to load private key")
+	keyhex    = pflag.StringP("keyhex", "h", "", "private key hex")
+	verbosity = pflag.StringP("verbosity", "v", "info",
+		"verbosity level, options: crit, error, warning, info, debug")
 )
+
+func normalizeForGolog(lvl string) string {
+	switch lvl {
+	case "crit":
+		return "criticical"
+	default:
+		return lvl
+	}
+}
 
 func main() {
 	pflag.Parse()
 	golog.SetupLogging()
-	golog.SetAllLoggers(gologging.INFO)
+
+	lvl, err := gologging.LogLevel(normalizeForGolog(*verbosity))
+	must(err)
+	golog.SetAllLoggers(lvl)
+
+	level, err := log.LvlFromString(strings.ToLower(*verbosity))
+	must(err)
+	filteredHandler := log.LvlFilterHandler(level, log.StderrHandler)
+	log.Root().SetHandler(filteredHandler)
+
 	priv, err := getKey()
 	must(err)
 	if *generate {
@@ -45,6 +67,7 @@ func main() {
 	must(err)
 	srv := server.NewServer(laddr, priv, server.NewStorage(db))
 	must(srv.Start())
+
 	defer srv.Stop()
 	select {}
 }

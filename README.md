@@ -1,28 +1,26 @@
-How to run?
-===========
+Rendezvous server
+=================
 
-Fetch dependencies
+In order to build a docker image, run:
 
-```
-dep ensure
-```
-
-Start the server.
-
-```
-go run ./cmd/server/main.go
+```bash
+make image
 ```
 
-Copy multiaddr string from logs. In my case /ip4/127.0.0.1/tcp/9090/ipfs/QmYV4YUJ4capN4BmE3D8nKgPaaqzu6T1Vf2NxjTcVg8MVK.
-
-Register ENR using client. Can be executed multiple times, key for ENR is randomly generated.
+Server usage:
 
 ```
-go run ./cmd/client/main.go -s /ip4/127.0.0.1/tcp/9090/ipfs/QmYV4YUJ4capN4BmE3D8nKgPaaqzu6T1Vf2NxjTcVg8MVK -r
+  -a, --address string     listener ip address (default "0.0.0.0")
+  -d, --data string        path where ENR infos will be stored. (default "/tmp/rendevouz")
+  -g, --generate           dump private key and exit.
+  -h, --keyhex string      private key hex
+  -k, --keypath string     path to load private key
+  -p, --port int           listener port (default 9090)
+  -v, --verbosity string   verbosity level, options: crit, error, warning, info, debug (default "info")
 ```
 
-Fetch discovered ENRs.
+Option `-g` can be used to generate hex of the private key for convenience.
+Option `-h` should be used only in tests.
 
-```
-go run ./cmd/client/main.go -s /ip4/127.0.0.1/tcp/9090/ipfs/QmYV4YUJ4capN4BmE3D8nKgPaaqzu6T1Vf2NxjTcVg8MVK
-```
+The only mandatory parameter is keypath `-k`, and not mandatory but i suggest to change data path `-d` not to a temporary
+directory.
