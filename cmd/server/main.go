@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 
@@ -80,7 +80,8 @@ func getKey() (priv lcrypto.PrivKey, err error) {
 			return priv, err
 		}
 		defer f.Close()
-		hexBytes, err := ioutil.ReadAll(f)
+		hexBytes := make([]byte, 64)
+		_, err = io.ReadFull(f, hexBytes)
 		if err != nil {
 			return priv, err
 		}
