@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -73,47 +74,51 @@ func TestGetRandomMultipleTimes(t *testing.T) {
 }
 
 func TestGetRandomMultiTopics(t *testing.T) {
-	first := "first"
-	second := "second"
-	firstSet := map[string]struct{}{}
-	secondSet := map[string]struct{}{}
-	memdb, _ := leveldb.Open(storage.NewMemStorage(), nil)
-	s := NewStorage(memdb)
-	for _, fixture := range []struct {
-		topic string
-		set   map[string]struct{}
-	}{
-		{first, firstSet},
-		{second, secondSet},
-	} {
-		for i := 0; i < 5; i++ {
-			key, _ := crypto.GenerateKey()
-			var r enr.Record
-			require.NoError(t, enr.SignV4(&r, key))
-			_, err := s.Add(fixture.topic, r, time.Time{})
+	for _, tc := range [][2]string{{"first", "second"}, {"first", "firstprefix"}} {
+		t.Run(fmt.Sprintf("%s!=%s", tc[0], tc[1]), func(t *testing.T) {
+			first := tc[0]
+			second := tc[1]
+			firstSet := map[string]struct{}{}
+			secondSet := map[string]struct{}{}
+			memdb, _ := leveldb.Open(storage.NewMemStorage(), nil)
+			s := NewStorage(memdb)
+			for _, fixture := range []struct {
+				topic string
+				set   map[string]struct{}
+			}{
+				{first, firstSet},
+				{second, secondSet},
+			} {
+				for i := 0; i < 5; i++ {
+					key, _ := crypto.GenerateKey()
+					var r enr.Record
+					require.NoError(t, enr.SignV4(&r, key))
+					_, err := s.Add(fixture.topic, r, time.Time{})
+					require.NoError(t, err)
+					fixture.set[crypto.PubkeyToAddress(key.PublicKey).Hex()] = struct{}{}
+				}
+			}
+			firstRecods, err := s.GetRandom(first, 5)
 			require.NoError(t, err)
-			fixture.set[crypto.PubkeyToAddress(key.PublicKey).Hex()] = struct{}{}
-		}
-	}
-	firstRecods, err := s.GetRandom(first, 5)
-	require.NoError(t, err)
-	require.Len(t, firstRecods, 5)
-	for _, r := range firstRecods {
-		var id enr.Secp256k1
-		require.NoError(t, r.Load(&id))
-		addr := crypto.PubkeyToAddress(ecdsa.PublicKey(id))
-		assert.Contains(t, firstSet, addr.Hex())
-		assert.NotContains(t, secondSet, addr.Hex())
-	}
-	secondRecods, err := s.GetRandom(second, 5)
-	require.NoError(t, err)
-	require.Len(t, secondRecods, 5)
-	for _, r := range secondRecods {
-		var id enr.Secp256k1
-		require.NoError(t, r.Load(&id))
-		addr := crypto.PubkeyToAddress(ecdsa.PublicKey(id))
-		assert.Contains(t, secondSet, addr.Hex())
-		assert.NotContains(t, firstSet, addr.Hex())
+			require.Len(t, firstRecods, 5)
+			for _, r := range firstRecods {
+				var id enr.Secp256k1
+				require.NoError(t, r.Load(&id))
+				addr := crypto.PubkeyToAddress(ecdsa.PublicKey(id))
+				assert.Contains(t, firstSet, addr.Hex())
+				assert.NotContains(t, secondSet, addr.Hex())
+			}
+			secondRecods, err := s.GetRandom(second, 5)
+			require.NoError(t, err)
+			require.Len(t, secondRecods, 5)
+			for _, r := range secondRecods {
+				var id enr.Secp256k1
+				require.NoError(t, r.Load(&id))
+				addr := crypto.PubkeyToAddress(ecdsa.PublicKey(id))
+				assert.Contains(t, secondSet, addr.Hex())
+				assert.NotContains(t, firstSet, addr.Hex())
+			}
+		})
 	}
 }
 

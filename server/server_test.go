@@ -108,6 +108,14 @@ func TestRegisterRPC(t *testing.T) {
 			},
 		},
 		{
+			Desc:   "has0xff",
+			Status: protocol.E_INVALID_NAMESPACE,
+			Request: protocol.Register{
+				TTL:   uint64(longestTTL - 1),
+				Topic: string([]byte{0x01, 0x01, TopicBodyDelimiter}),
+			},
+		},
+		{
 			Desc:   "invalidenr",
 			Status: protocol.E_INVALID_ENR,
 			Request: protocol.Register{

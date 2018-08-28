@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -209,6 +210,9 @@ func (srv *Server) register(msg protocol.Register) (protocol.RegisterResponse, e
 	}
 	if time.Duration(msg.TTL) > longestTTL {
 		return protocol.RegisterResponse{Status: protocol.E_INVALID_TTL}, nil
+	}
+	if bytes.IndexByte([]byte(msg.Topic), TopicBodyDelimiter) != -1 {
+		return protocol.RegisterResponse{Status: protocol.E_INVALID_NAMESPACE}, nil
 	}
 	if !msg.Record.Signed() {
 		return protocol.RegisterResponse{Status: protocol.E_INVALID_ENR}, nil
