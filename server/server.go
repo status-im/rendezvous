@@ -163,6 +163,8 @@ func (srv *Server) purgeOutdated() {
 	if len(key) == 0 {
 		return
 	}
+	topic := TopicPart([]byte(key))
+	registerationsGauge.WithLabelValues(string(topic)).Dec()
 	if err := srv.storage.RemoveByKey(key); err != nil {
 		logger.Error("error removing key from storage", "key", key, "error", err)
 	}
@@ -179,6 +181,7 @@ func (srv *Server) msgParser(typ protocol.MessageType, d Decoder) (resptype prot
 		var msg protocol.Register
 		resptype = protocol.REGISTER_RESPONSE
 		if err = d.Decode(&msg); err != nil {
+			errorsCounter.WithLabelValues("register").Inc()
 			return resptype, protocol.RegisterResponse{Status: protocol.E_INVALID_CONTENT}, nil
 		}
 		resp, err = srv.register(msg)
@@ -187,18 +190,24 @@ func (srv *Server) msgParser(typ protocol.MessageType, d Decoder) (resptype prot
 		var msg protocol.Discover
 		resptype = protocol.DISCOVER_RESPONSE
 		if err = d.Decode(&msg); err != nil {
+			errorsCounter.WithLabelValues("discover").Inc()
 			return resptype, protocol.DiscoverResponse{Status: protocol.E_INVALID_CONTENT}, nil
 		}
 		limit := msg.Limit
 		if msg.Limit > maxLimit {
 			limit = maxLimit
 		}
+		start := time.Now()
 		records, err := srv.storage.GetRandom(msg.Topic, limit)
 		if err != nil {
+			errorsCounter.WithLabelValues("discover").Inc()
 			return resptype, protocol.DiscoverResponse{Status: protocol.E_INTERNAL_ERROR}, err
 		}
+		discoveryDuration.WithLabelValues(msg.Topic).Observe(time.Since(start).Seconds())
+		discoverySize.WithLabelValues(msg.Topic).Observe(float64(len(records)))
 		return resptype, protocol.DiscoverResponse{Status: protocol.OK, Records: records}, nil
 	default:
+		errorsCounter.WithLabelValues("unknown").Inc()
 		// don't send the response
 		return 0, nil, errors.New("unknown request type")
 	}
@@ -221,6 +230,9 @@ func (srv *Server) register(msg protocol.Register) (protocol.RegisterResponse, e
 	key, err := srv.storage.Add(msg.Topic, msg.Record, ttl)
 	if err != nil {
 		return protocol.RegisterResponse{Status: protocol.E_INTERNAL_ERROR}, err
+	}
+	if !srv.cleaner.Exist(key) {
+		registerationsGauge.WithLabelValues(msg.Topic).Inc()
 	}
 	srv.cleaner.Add(ttl, key)
 	return protocol.RegisterResponse{Status: protocol.OK}, nil

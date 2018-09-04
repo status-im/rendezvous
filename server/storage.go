@@ -22,6 +22,16 @@ type StorageRecord struct {
 	Time time.Time
 }
 
+// TopicPart looks for TopicBodyDelimiter and returns topic prefix from the same key.
+// It doesn't allocate memory for topic prefix.
+func TopicPart(key []byte) []byte {
+	idx := bytes.IndexByte(key, TopicBodyDelimiter)
+	if idx == -1 {
+		return nil
+	}
+	return key[:idx]
+}
+
 type RecordsKey []byte
 
 func NewRecordsKey(topic string, record enr.Record) RecordsKey {

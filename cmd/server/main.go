@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	lcrypto "github.com/libp2p/go-libp2p-crypto"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/status-im/rendezvous/server"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -31,6 +33,7 @@ var (
 	keyhex    = pflag.StringP("keyhex", "h", "", "private key hex")
 	verbosity = pflag.StringP("verbosity", "v", "info",
 		"verbosity level, options: crit, error, warning, info, debug")
+	metricsAddress = pflag.StringP("metrics-address", "m", "127.0.0.1:8080", "http server for exposing prometheus metrics")
 )
 
 func normalizeForGolog(lvl string) string {
@@ -69,7 +72,11 @@ func main() {
 	must(srv.Start())
 
 	defer srv.Stop()
-	select {}
+
+	http.Handle("/metrics", promhttp.Handler())
+	if err := http.ListenAndServe(*metricsAddress, nil); err != nil {
+		log.Crit(err.Error())
+	}
 }
 
 func getKey() (priv lcrypto.PrivKey, err error) {
