@@ -69,3 +69,7 @@
 [[constraint]]
   name = "github.com/gyuho/goraph"
   version = "2.0.0"
+
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  version = "0.8.0"
