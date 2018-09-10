@@ -22,6 +22,7 @@ var logger = log.New("package", "rendezvous/server")
 
 const (
 	longestTTL          = 20 * time.Second
+	networkDelay        = 2 * time.Second
 	cleanerPeriod       = 2 * time.Second
 	maxLimit       uint = 10
 	maxTopicLength      = 50
@@ -75,6 +76,11 @@ func (srv *Server) Start() error {
 	}
 	// once server is restarted all cleaner info is lost. so we need to rebuild it
 	return srv.storage.IterateAllKeys(func(key RecordsKey, ttl time.Time) error {
+		if !srv.cleaner.Exist(key.String()) {
+			topic := TopicPart(key)
+			log.Debug("active registration with", "topic", string(topic))
+			registerationsGauge.WithLabelValues(string(topic)).Inc()
+		}
 		srv.cleaner.Add(ttl, key.String())
 		return nil
 	})
@@ -164,6 +170,7 @@ func (srv *Server) purgeOutdated() {
 		return
 	}
 	topic := TopicPart([]byte(key))
+	log.Debug("Removing record with", "topic", string(topic))
 	registerationsGauge.WithLabelValues(string(topic)).Dec()
 	if err := srv.storage.RemoveByKey(key); err != nil {
 		logger.Error("error removing key from storage", "key", key, "error", err)
@@ -226,14 +233,16 @@ func (srv *Server) register(msg protocol.Register) (protocol.RegisterResponse, e
 	if !msg.Record.Signed() {
 		return protocol.RegisterResponse{Status: protocol.E_INVALID_ENR}, nil
 	}
-	ttl := time.Now().Add(time.Duration(msg.TTL))
-	key, err := srv.storage.Add(msg.Topic, msg.Record, ttl)
+	deadline := time.Now().Add(time.Duration(msg.TTL)).Add(networkDelay)
+	key, err := srv.storage.Add(msg.Topic, msg.Record, deadline)
 	if err != nil {
 		return protocol.RegisterResponse{Status: protocol.E_INTERNAL_ERROR}, err
 	}
 	if !srv.cleaner.Exist(key) {
+		log.Debug("active registration with", "topic", msg.Topic)
 		registerationsGauge.WithLabelValues(msg.Topic).Inc()
 	}
-	srv.cleaner.Add(ttl, key)
+	log.Debug("updating record in the cleaner", "deadline", deadline, "topic", msg.Topic)
+	srv.cleaner.Add(deadline, key)
 	return protocol.RegisterResponse{Status: protocol.OK}, nil
 }
