@@ -14,7 +14,10 @@ func TestCleaner(t *testing.T) {
 		added[ttl] = ttl.String()
 		c.Add(time.Time{}.Add(ttl), ttl.String())
 	}
-	assert.Equal(t, added[time.Minute], c.PopOneSince(time.Time{}.Add(90*time.Second)))
+	c.Add(time.Time{}.Add(91*time.Second), time.Minute.String())
+	assert.Empty(t, c.PopOneSince(time.Time{}.Add(90*time.Second)))
+	assert.Equal(t, added[time.Minute], c.PopOneSince(time.Time{}.Add(92*time.Second)))
+	assert.Empty(t, c.PopOneSince(time.Time{}.Add(92*time.Second)))
 	assert.Len(t, c.heap, 2)
 	assert.Empty(t, c.PopOneSince(time.Time{}.Add(119*time.Second)))
 	assert.Equal(t, added[2*time.Minute], c.PopOneSince(time.Time{}.Add(121*time.Second)))

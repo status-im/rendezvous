@@ -72,6 +72,12 @@ func (c *Cleaner) PopOneSince(now time.Time) (rst string) {
 	if len(c.heap) == 0 {
 		return
 	}
+	// same key can be inserted multiple times into the heap,
+	// deadline for a key is removed when it was popped the first time
+	if _, exist := c.deadlines[c.heap[0]]; !exist {
+		heap.Pop(c)
+		return
+	}
 	if now.After(c.deadlines[c.heap[0]]) {
 		return heap.Pop(c).(string)
 	}

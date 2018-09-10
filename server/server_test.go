@@ -34,6 +34,7 @@ func TestCleanOnRegister(t *testing.T) {
 			memdb, _ := leveldb.Open(storage.NewMemStorage(), nil)
 			s := NewStorage(memdb)
 			srv := NewServer(nil, nil, s)
+			srv.networkDelay = 0
 			srv.cleanerPeriod = 10 * time.Millisecond
 			require.Nil(t, srv.Addr())
 			require.NoError(t, srv.startCleaner())
