@@ -31,5 +31,5 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(registerationsGauge, discoverySize, discoveryDuration)
+	prometheus.MustRegister(registerationsGauge, discoverySize, discoveryDuration, errorsCounter)
 }

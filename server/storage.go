@@ -29,7 +29,7 @@ func TopicPart(key []byte) []byte {
 	if idx == -1 {
 		return nil
 	}
-	return key[:idx]
+	return key[1:idx] // first byte is RecordsPrefix
 }
 
 type RecordsKey []byte
