@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/p2p/enr"
@@ -44,7 +45,7 @@ func TestClientRegisterDiscover(t *testing.T) {
 	record.Set(enr.TCP(8087))
 	record.Set(enr.WithEntry("nonce", uint(1010)))
 	require.NoError(t, enr.SignV4(&record, k))
-	require.NoError(t, client.Register(context.TODO(), srv.Addr(), "any", record))
+	require.NoError(t, client.Register(context.TODO(), srv.Addr(), "any", record, 5*time.Second))
 	records, err := client.Discover(context.TODO(), srv.Addr(), "any", 1)
 	require.NoError(t, err)
 	require.Len(t, records, 1)
