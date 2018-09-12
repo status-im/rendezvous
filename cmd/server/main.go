@@ -16,6 +16,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
+	"github.com/status-im/rendezvous/prometheus"
 	"github.com/status-im/rendezvous/server"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -73,6 +74,7 @@ func main() {
 
 	defer srv.Stop()
 
+	prometheus.UsePrometheus()
 	http.Handle("/metrics", promhttp.Handler())
 	if err := http.ListenAndServe(*metricsAddress, nil); err != nil {
 		log.Crit(err.Error())

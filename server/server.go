@@ -81,7 +81,7 @@ func (srv *Server) Start() error {
 		if !srv.cleaner.Exist(key.String()) {
 			topic := TopicPart(key)
 			log.Debug("active registration with", "topic", string(topic))
-			registerationsGauge.WithLabelValues(string(topic)).Inc()
+			metrics.AddActiveRegistration(string(topic))
 		}
 		srv.cleaner.Add(ttl, key.String())
 		return nil
@@ -173,7 +173,7 @@ func (srv *Server) purgeOutdated() {
 	}
 	topic := TopicPart([]byte(key))
 	log.Debug("Removing record with", "topic", string(topic))
-	registerationsGauge.WithLabelValues(string(topic)).Dec()
+	metrics.RemoveActiveRegistration(string(topic))
 	if err := srv.storage.RemoveByKey(key); err != nil {
 		logger.Error("error removing key from storage", "key", key, "error", err)
 	}
@@ -190,7 +190,7 @@ func (srv *Server) msgParser(typ protocol.MessageType, d Decoder) (resptype prot
 		var msg protocol.Register
 		resptype = protocol.REGISTER_RESPONSE
 		if err = d.Decode(&msg); err != nil {
-			errorsCounter.WithLabelValues("register").Inc()
+			metrics.CountError("register")
 			return resptype, protocol.RegisterResponse{Status: protocol.E_INVALID_CONTENT}, nil
 		}
 		resp, err = srv.register(msg)
@@ -199,7 +199,7 @@ func (srv *Server) msgParser(typ protocol.MessageType, d Decoder) (resptype prot
 		var msg protocol.Discover
 		resptype = protocol.DISCOVER_RESPONSE
 		if err = d.Decode(&msg); err != nil {
-			errorsCounter.WithLabelValues("discover").Inc()
+			metrics.CountError("discover")
 			return resptype, protocol.DiscoverResponse{Status: protocol.E_INVALID_CONTENT}, nil
 		}
 		limit := msg.Limit
@@ -209,14 +209,14 @@ func (srv *Server) msgParser(typ protocol.MessageType, d Decoder) (resptype prot
 		start := time.Now()
 		records, err := srv.storage.GetRandom(msg.Topic, limit)
 		if err != nil {
-			errorsCounter.WithLabelValues("discover").Inc()
+			metrics.CountError("discover")
 			return resptype, protocol.DiscoverResponse{Status: protocol.E_INTERNAL_ERROR}, err
 		}
-		discoveryDuration.WithLabelValues(msg.Topic).Observe(time.Since(start).Seconds())
-		discoverySize.WithLabelValues(msg.Topic).Observe(float64(len(records)))
+		metrics.ObserveDiscoveryDuration(time.Since(start).Seconds(), msg.Topic)
+		metrics.ObserveDiscoverSize(float64(len(records)), msg.Topic)
 		return resptype, protocol.DiscoverResponse{Status: protocol.OK, Records: records}, nil
 	default:
-		errorsCounter.WithLabelValues("unknown").Inc()
+		metrics.CountError("unknown")
 		// don't send the response
 		return 0, nil, errors.New("unknown request type")
 	}
@@ -242,7 +242,7 @@ func (srv *Server) register(msg protocol.Register) (protocol.RegisterResponse, e
 	}
 	if !srv.cleaner.Exist(key) {
 		log.Debug("active registration with", "topic", msg.Topic)
-		registerationsGauge.WithLabelValues(msg.Topic).Inc()
+		metrics.AddActiveRegistration(msg.Topic)
 	}
 	log.Debug("updating record in the cleaner", "deadline", deadline, "topic", msg.Topic)
 	srv.cleaner.Add(deadline, key)
