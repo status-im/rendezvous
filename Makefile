@@ -13,7 +13,7 @@ image:
 	docker build . \
 		--label "commit=$(GIT_COMMIT)" \
 		--label "author=$(AUTHOR)" \
-		-t statusteam/rendezvous:$(GIT_COMMIT)
+		-t statusteam/rendezvous:$(GIT_COMMIT) \
 		-t statusteam/rendezvous:latest
 
 push:
