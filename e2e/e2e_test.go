@@ -36,7 +36,7 @@ func TestClientRegisterDiscover(t *testing.T) {
 
 	priv, _, err = lcrypto.GenerateKeyPairWithReader(lcrypto.Secp256k1, 2048, rand.New(rand.NewSource(2)))
 	require.NoError(t, err)
-	client, err := rendezvous.NewTemporary()
+	client, err := rendezvous.NewEphemeral()
 	require.NoError(t, err)
 
 	k, _ := crypto.GenerateKey()
