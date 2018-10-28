@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
+	"github.com/ethereum/go-ethereum/p2p/enode"
 )
 
 type addr []byte
@@ -38,7 +39,7 @@ func TestGraphConnected(t *testing.T) {
 			for i := 0; i < n; i++ {
 				key, _ := crypto.GenerateKey()
 				var r enr.Record
-				require.NoError(t, enr.SignV4(&r, key))
+				require.NoError(t, enode.SignV4(&r, key))
 				_, err := s.Add(topic, r, time.Time{})
 				require.NoError(t, err)
 				enrs[i] = r
@@ -46,7 +47,7 @@ func TestGraphConnected(t *testing.T) {
 			graph := goraph.NewGraph()
 			var last goraph.Node
 			for i := range enrs {
-				require.True(t, graph.AddNode(addr(enrs[i].NodeAddr())))
+				require.True(t, graph.AddNode(addr(enode.ValidSchemes.NodeAddr(&enrs[i]))))
 			}
 			require.Equal(t, n, graph.GetNodeCount())
 
@@ -55,16 +56,16 @@ func TestGraphConnected(t *testing.T) {
 				require.NoError(t, err)
 				added := 0
 				for j := range peers {
-					if bytes.Equal(enrs[i].NodeAddr(), peers[j].NodeAddr()) {
+					if bytes.Equal(enode.ValidSchemes.NodeAddr(&enrs[i]), enode.ValidSchemes.NodeAddr(&peers[j])) {
 						continue
 					}
 					added++
-					require.NoError(t, graph.AddEdge(addr(enrs[i].NodeAddr()).ID(), addr(peers[j].NodeAddr()).ID(), 0))
+					require.NoError(t, graph.AddEdge(addr(enode.ValidSchemes.NodeAddr(&enrs[i])).ID(), addr(enode.ValidSchemes.NodeAddr(&peers[j])).ID(), 0))
 					if added == k {
 						break
 					}
 				}
-				last = addr(enrs[i].NodeAddr())
+				last = addr(enode.ValidSchemes.NodeAddr(&enrs[i]))
 			}
 			require.Len(t, goraph.BFS(graph, last.ID()), n)
 

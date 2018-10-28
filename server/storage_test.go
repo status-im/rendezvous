@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
+	"github.com/ethereum/go-ethereum/p2p/enode"
 )
 
 func TestGetRandom(t *testing.T) {
@@ -36,7 +37,7 @@ func TestGetRandom(t *testing.T) {
 			for i := 0; i < tc.total; i++ {
 				key, _ := crypto.GenerateKey()
 				var r enr.Record
-				require.NoError(t, enr.SignV4(&r, key))
+				require.NoError(t, enode.SignV4(&r, key))
 				_, err := s.Add("some", r, time.Time{})
 				require.NoError(t, err)
 			}
@@ -55,7 +56,7 @@ func TestGetRandomMultipleTimes(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		key, _ := crypto.GenerateKey()
 		var r enr.Record
-		require.NoError(t, enr.SignV4(&r, key))
+		require.NoError(t, enode.SignV4(&r, key))
 		_, err := s.Add("some", r, time.Time{})
 		require.NoError(t, err)
 	}
@@ -64,7 +65,7 @@ func TestGetRandomMultipleTimes(t *testing.T) {
 		records, err := s.GetRandom("some", 1)
 		require.NoError(t, err)
 		require.Len(t, records, 1)
-		var id enr.Secp256k1
+		var id enode.Secp256k1
 		require.NoError(t, records[0].Load(&id))
 		hits[crypto.PubkeyToAddress(ecdsa.PublicKey(id))]++
 	}
@@ -92,7 +93,7 @@ func TestGetRandomMultiTopics(t *testing.T) {
 				for i := 0; i < 5; i++ {
 					key, _ := crypto.GenerateKey()
 					var r enr.Record
-					require.NoError(t, enr.SignV4(&r, key))
+					require.NoError(t, enode.SignV4(&r, key))
 					_, err := s.Add(fixture.topic, r, time.Time{})
 					require.NoError(t, err)
 					fixture.set[crypto.PubkeyToAddress(key.PublicKey).Hex()] = struct{}{}
@@ -102,7 +103,7 @@ func TestGetRandomMultiTopics(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, firstRecods, 5)
 			for _, r := range firstRecods {
-				var id enr.Secp256k1
+				var id enode.Secp256k1
 				require.NoError(t, r.Load(&id))
 				addr := crypto.PubkeyToAddress(ecdsa.PublicKey(id))
 				assert.Contains(t, firstSet, addr.Hex())
@@ -112,7 +113,7 @@ func TestGetRandomMultiTopics(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, secondRecods, 5)
 			for _, r := range secondRecods {
-				var id enr.Secp256k1
+				var id enode.Secp256k1
 				require.NoError(t, r.Load(&id))
 				addr := crypto.PubkeyToAddress(ecdsa.PublicKey(id))
 				assert.Contains(t, secondSet, addr.Hex())
@@ -131,7 +132,7 @@ func TestIterateKeys(t *testing.T) {
 	for i := 0; i < count; i++ {
 		pkey, _ := crypto.GenerateKey()
 		var r enr.Record
-		require.NoError(t, enr.SignV4(&r, pkey))
+		require.NoError(t, enode.SignV4(&r, pkey))
 		key, err := s.Add(topic, r, time.Time{})
 		require.NoError(t, err)
 		keys[key] = struct{}{}
@@ -160,7 +161,7 @@ func benchmarkRandomReads(b *testing.B, records int) {
 	for i := 0; i < records; i++ {
 		key, _ := crypto.GenerateKey()
 		var r enr.Record
-		require.NoError(b, enr.SignV4(&r, key))
+		require.NoError(b, enode.SignV4(&r, key))
 		_, err := s.Add(topic, r, time.Time{})
 		require.NoError(b, err)
 	}

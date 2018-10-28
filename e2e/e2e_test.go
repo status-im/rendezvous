@@ -18,6 +18,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
 	gologging "github.com/whyrusleeping/go-logging"
+	"github.com/ethereum/go-ethereum/p2p/enode"
 )
 
 func TestClientRegisterDiscover(t *testing.T) {
@@ -44,12 +45,12 @@ func TestClientRegisterDiscover(t *testing.T) {
 	record.Set(enr.IP{10, 0, 10, 24})
 	record.Set(enr.TCP(8087))
 	record.Set(enr.WithEntry("nonce", uint(1010)))
-	require.NoError(t, enr.SignV4(&record, k))
+	require.NoError(t, enode.SignV4(&record, k))
 	require.NoError(t, client.Register(context.TODO(), srv.Addr(), "any", record, 5*time.Second))
 	records, err := client.Discover(context.TODO(), srv.Addr(), "any", 1)
 	require.NoError(t, err)
 	require.Len(t, records, 1)
-	var id enr.Secp256k1
+	var id enode.Secp256k1
 	require.NoError(t, records[0].Load(&id))
 	require.Equal(t, crypto.PubkeyToAddress(k.PublicKey), crypto.PubkeyToAddress(ecdsa.PublicKey(id)))
 }
