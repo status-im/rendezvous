@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/enr"
 	"github.com/status-im/rendezvous/protocol"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +43,7 @@ func TestCleanOnRegister(t *testing.T) {
 			for i := 0; i < tc.records; i++ {
 				key, _ := crypto.GenerateKey()
 				var r enr.Record
-				require.NoError(t, enr.SignV4(&r, key))
+				require.NoError(t, enode.SignV4(&r, key))
 				resp, err := srv.register(protocol.Register{Record: r, Topic: topic, TTL: uint64(tc.ttl)})
 				require.NoError(t, err)
 				require.Equal(t, protocol.OK, resp.Status)
@@ -78,7 +79,7 @@ func TestRegisterRPC(t *testing.T) {
 	topic := "any"
 	valid := enr.Record{}
 	key, _ := crypto.GenerateKey()
-	enr.SignV4(&valid, key)
+	enode.SignV4(&valid, key)
 	for _, tc := range []regCase{
 		{
 			Desc:   "invalid",
@@ -203,7 +204,7 @@ func TestDiscoverRPC(t *testing.T) {
 			for i := 0; i < 100; i++ {
 				key, _ := crypto.GenerateKey()
 				var r enr.Record
-				require.NoError(t, enr.SignV4(&r, key))
+				require.NoError(t, enode.SignV4(&r, key))
 				resp, err := srv.register(protocol.Register{Record: r, Topic: topic})
 				require.NoError(t, err)
 				require.Equal(t, protocol.OK, resp.Status)
