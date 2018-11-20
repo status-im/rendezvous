@@ -15,7 +15,7 @@ func TestCleaner(t *testing.T) {
 		c.Add(time.Time{}.Add(ttl), ttl.String())
 	}
 	c.Add(time.Time{}.Add(140*time.Second), time.Minute.String())
-	assert.Len(t, c.heap, 4)
+	assert.Len(t, c.heap, 3)
 	assert.Equal(t, []string{added[2*time.Minute]}, c.PopSince(time.Time{}.Add(121*time.Second)))
 	assert.Len(t, c.heap, 2)
 	assert.Equal(t, []string{added[time.Minute]}, c.PopSince(time.Time{}.Add(141*time.Second)))
