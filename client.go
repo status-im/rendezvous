@@ -38,15 +38,17 @@ func New(identity crypto.PrivKey) (c Client, err error) {
 		return c, err
 	}
 	return Client{
-		identity: identity,
-		h:        h,
+		h: h,
+	}, nil
+}
+
+func NewWithHost(h host.Host) (c Client, err error) {
+	return Client{
+		h: h,
 	}, nil
 }
 
 type Client struct {
-	laddr    ma.Multiaddr
-	identity crypto.PrivKey
-
 	h host.Host
 }
 
