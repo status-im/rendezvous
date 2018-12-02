@@ -118,8 +118,8 @@ func (srv *Server) startListener() error {
 	}
 	srv.h = h
 	srv.h.SetStreamHandler(protocol.VERSION, func(s net.Stream) {
+		defer s.Close()
 		for {
-			defer s.Close()
 			rs := rlp.NewStream(s, 0)
 			s.SetReadDeadline(time.Now().Add(srv.readTimeout))
 			typ, err := rs.Uint()
@@ -127,7 +127,8 @@ func (srv *Server) startListener() error {
 				return
 			}
 			if err != nil {
-				logger.Error("error reading message type", "error", err)
+				logger.Debug("error reading message type", "error", err)
+				s.Reset()
 				return
 			}
 			s.SetReadDeadline(time.Now().Add(srv.readTimeout))
@@ -136,17 +137,20 @@ func (srv *Server) startListener() error {
 				return
 			}
 			if err != nil {
-				logger.Error("error parsing message", "error", err)
+				logger.Debug("error parsing message", "error", err)
+				s.Reset()
 				return
 			}
 			s.SetWriteDeadline(time.Now().Add(srv.writeTimeout))
 			if err = rlp.Encode(s, resptype); err != nil {
-				logger.Error("error writing response", "type", resptype, "error", err)
+				logger.Debug("error writing response", "type", resptype, "error", err)
+				s.Reset()
 				return
 			}
 			s.SetWriteDeadline(time.Now().Add(srv.writeTimeout))
 			if err = rlp.Encode(s, resp); err != nil {
-				logger.Error("error encoding response", "resp", resp, "error", err)
+				logger.Debug("error encoding response", "resp", resp, "error", err)
+				s.Reset()
 			}
 		}
 	})
