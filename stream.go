@@ -30,3 +30,7 @@ func (si InstrumenetedStream) Read(p []byte) (int, error) {
 func (si InstrumenetedStream) Close() error {
 	return si.s.Close()
 }
+
+func (si InstrumenetedStream) Reset() error {
+	return si.s.Reset()
+}

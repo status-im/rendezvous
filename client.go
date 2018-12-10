@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -57,7 +56,7 @@ func (c Client) Register(ctx context.Context, srv ma.Multiaddr, topic string, re
 	if err != nil {
 		return err
 	}
-	defer s.Close()
+	defer s.Reset()
 	if err = rlp.Encode(s, protocol.REGISTER); err != nil {
 		return err
 	}
@@ -88,7 +87,7 @@ func (c Client) Discover(ctx context.Context, srv ma.Multiaddr, topic string, li
 	if err != nil {
 		return
 	}
-	defer s.Close()
+	defer s.Reset()
 	if err = rlp.Encode(s, protocol.DISCOVER); err != nil {
 		return
 	}
@@ -114,7 +113,7 @@ func (c Client) Discover(ctx context.Context, srv ma.Multiaddr, topic string, li
 	return val.Records, nil
 }
 
-func (c Client) newStream(ctx context.Context, srv ma.Multiaddr) (rw io.ReadWriteCloser, err error) {
+func (c Client) newStream(ctx context.Context, srv ma.Multiaddr) (rw *InstrumenetedStream, err error) {
 	pid, err := srv.ValueForProtocol(ethv4.P_ETHv4)
 	if err != nil {
 		return
@@ -134,5 +133,5 @@ func (c Client) newStream(ctx context.Context, srv ma.Multiaddr) (rw io.ReadWrit
 	if err != nil {
 		return nil, err
 	}
-	return InstrumenetedStream{s}, nil
+	return &InstrumenetedStream{s}, nil
 }
