@@ -12,7 +12,7 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/ethereum/go-ethereum/log"
 	golog "github.com/ipfs/go-log"
-	lcrypto "github.com/libp2p/go-libp2p-crypto"
+	lcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
