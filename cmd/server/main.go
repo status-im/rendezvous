@@ -20,7 +20,6 @@ import (
 	"github.com/status-im/rendezvous/server"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-	gologging "github.com/whyrusleeping/go-logging"
 
 	_ "github.com/status-im/go-multiaddr-ethv4"
 )
@@ -33,14 +32,14 @@ var (
 	keypath   = pflag.StringP("keypath", "k", "", "path to load private key")
 	keyhex    = pflag.StringP("keyhex", "h", "", "private key hex")
 	verbosity = pflag.StringP("verbosity", "v", "info",
-		"verbosity level, options: crit, error, warning, info, debug")
+		"verbosity level, options: crit, error, warn, info, debug")
 	metricsAddress = pflag.StringP("metrics-address", "m", "127.0.0.1:8080", "http server for exposing prometheus metrics")
 )
 
 func normalizeForGolog(lvl string) string {
 	switch lvl {
 	case "crit":
-		return "criticical"
+		return "panic"
 	default:
 		return lvl
 	}
@@ -50,7 +49,8 @@ func main() {
 	pflag.Parse()
 	golog.SetupLogging()
 
-	lvl, err := gologging.LogLevel(normalizeForGolog(*verbosity))
+	lvl, err := golog.LevelFromString(normalizeForGolog(*verbosity))
+
 	must(err)
 	golog.SetAllLoggers(lvl)
 

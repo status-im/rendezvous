@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/enr"
 	golog "github.com/ipfs/go-log"
 	lcrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -17,14 +18,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
-	gologging "github.com/whyrusleeping/go-logging"
-	"github.com/ethereum/go-ethereum/p2p/enode"
 )
 
 func TestClientRegisterDiscover(t *testing.T) {
 
 	golog.SetupLogging()
-	golog.SetAllLoggers(gologging.INFO)
+	lvl, _ := golog.LevelFromString("info")
+	golog.SetAllLoggers(lvl)
 
 	priv, _, err := lcrypto.GenerateKeyPairWithReader(lcrypto.Secp256k1, 2048, rand.New(rand.NewSource(1)))
 	require.NoError(t, err)
