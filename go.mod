@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/btcsuite/btcd v0.22.0-beta
-	github.com/ethereum/go-ethereum v1.10.17
+	github.com/ethereum/go-ethereum v1.10.16
 	github.com/gyuho/goraph v0.0.0-20171001060514-a7a4454fd3eb
 	github.com/ipfs/go-log v1.0.5
 	github.com/libp2p/go-libp2p v0.18.0
