@@ -9,7 +9,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/btcsuite/btcd/btcec"
+	btcec "github.com/btcsuite/btcd/btcec/v2"
+
 	"github.com/ethereum/go-ethereum/log"
 	golog "github.com/ipfs/go-log"
 	lcrypto "github.com/libp2p/go-libp2p-core/crypto"
