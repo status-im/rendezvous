@@ -10,8 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/enr"
-	golog "github.com/ipfs/go-log"
-	lcrypto "github.com/libp2p/go-libp2p-core/crypto"
+	golog "github.com/ipfs/go-log/v2"
+	lcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/status-im/rendezvous"
 	"github.com/status-im/rendezvous/server"
@@ -21,8 +21,6 @@ import (
 )
 
 func TestClientRegisterDiscover(t *testing.T) {
-
-	golog.SetupLogging()
 	lvl, _ := golog.LevelFromString("info")
 	golog.SetAllLoggers(lvl)
 

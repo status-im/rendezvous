@@ -12,8 +12,8 @@ import (
 	btcec "github.com/btcsuite/btcd/btcec/v2"
 
 	"github.com/ethereum/go-ethereum/log"
-	golog "github.com/ipfs/go-log"
-	lcrypto "github.com/libp2p/go-libp2p-core/crypto"
+	golog "github.com/ipfs/go-log/v2"
+	lcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
@@ -48,7 +48,6 @@ func normalizeForGolog(lvl string) string {
 
 func main() {
 	pflag.Parse()
-	golog.SetupLogging()
 
 	lvl, err := golog.LevelFromString(normalizeForGolog(*verbosity))
 
